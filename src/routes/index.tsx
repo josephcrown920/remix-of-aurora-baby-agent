@@ -10,6 +10,8 @@ import {
 } from "lucide-react";
 
 import { checkVideo, directorChat, generateImage, startVideo } from "@/lib/agent/agent.functions";
+import { DEFAULT_IMAGE_MODEL, DEFAULT_VIDEO_MODEL, IMAGE_MODELS, VIDEO_MODELS } from "@/lib/agent/models";
+import { loadStudio, saveStudioMessage, saveStudioSettings, saveStudioShots } from "@/lib/studio/studio.functions";
 
 export const Route = createFileRoute("/")({
   component: AuroraWorkspace,
@@ -26,27 +28,17 @@ type Clip = { id: string; label: string; sub: string; tone: string; width: numbe
 type Media = { id: string; name: string; type: string; color: string; glyph: string };
 type AgentMessage = { id: string; role: MessageRole; text: string; meta?: string };
 
-const initialClips: Clip[] = [
-  { id: "shot-01", label: "01  —  The signal", sub: "00:00–00:06", tone: "from-[#5d3d2c] via-[#1f2630] to-[#10131b]", width: 18 },
-  { id: "shot-02", label: "02  —  A city that listens", sub: "00:06–00:13", tone: "from-[#183f47] via-[#162b35] to-[#11141d]", width: 23 },
-  { id: "shot-03", label: "03  —  Find your frequency", sub: "00:13–00:21", tone: "from-[#7a5130] via-[#362a35] to-[#11131b]", width: 27 },
-  { id: "shot-04", label: "04  —  Stay curious", sub: "00:21–00:28", tone: "from-[#1d3d42] via-[#293441] to-[#11131b]", width: 22 },
-  { id: "shot-05", label: "05  —  Make the next move", sub: "00:28–00:34", tone: "from-[#5e332b] via-[#202433] to-[#11131b]", width: 20 },
+const TONES = [
+  "from-[#5c1338] via-[#2a0f36] to-[#150720]",
+  "from-[#3a0f52] via-[#250c34] to-[#12061c]",
+  "from-[#7a1236] via-[#340f3d] to-[#150720]",
+  "from-[#4b1050] via-[#2c0d38] to-[#120620]",
+  "from-[#6a0f2c] via-[#2f0d36] to-[#140620]",
 ];
 
-const initialMedia: Media[] = [
-  { id: "m1", name: "signal-dawn.mp4", type: "VIDEO", color: "from-[#704328] to-[#16212c]", glyph: "01" },
-  { id: "m2", name: "city-listens.mp4", type: "VIDEO", color: "from-[#184854] to-[#141b2a]", glyph: "02" },
-  { id: "m3", name: "frequency-close.mp4", type: "VIDEO", color: "from-[#8e5f37] to-[#292538]", glyph: "03" },
-  { id: "m4", name: "grain-overlay.mov", type: "OVERLAY", color: "from-[#3b3431] to-[#11131b]", glyph: "FX" },
-  { id: "m5", name: "ambient-aurora.wav", type: "AUDIO", color: "from-[#15535b] to-[#121927]", glyph: "♪" },
-  { id: "m6", name: "title-card.png", type: "IMAGE", color: "from-[#5f4a30] to-[#202232]", glyph: "T" },
-];
+const initialClips: Clip[] = [];
 
-const contextSections = [
-  { title: "Josh", detail: "NBA Josh — the artist. Red-tipped dreads, dark brown eyes, calm fearless face.", tag: "CHARACTER" },
-  { title: "Wet night street", detail: "Dark urban street at night, rain-slicked blacktop, overhead streetlights, red and blue police flashers.", tag: "LOCATION" },
-];
+const initialMedia: Media[] = [];
 
 const workflowOptions = [
   { label: "Start from an idea", detail: "Brief → script → first cut" },
@@ -56,20 +48,19 @@ const workflowOptions = [
 
 const projectTabs = ["Film", "Promo", "Performance Ad", "Product Ad", "Microdrama"];
 
-const defaultPrompt =
-  "Create a 35-second launch film for a new kind of city guide. Make it feel like the city is speaking directly to one curious person — tactile, nocturnal, quietly optimistic.";
+const defaultPrompt = "";
 
-const defaultRevision =
-  "Make shot 03 feel more intimate. Bring the camera closer, deepen the amber light, and keep the voiceover exactly as it is.";
+const defaultRevision = "";
 
 const initialMessages: AgentMessage[] = [
   {
     id: "agent-intro",
     role: "agent",
-    text: "I'm your video director. Tell me what you want to make — the idea, who it's for, and roughly how long. I'll ask a couple of questions before I create anything.",
+    text: "I'm Baby, your video director. Tell me what you want to make — the idea, who it's for, and roughly how long. I'll ask a couple of questions before I create anything.",
     meta: "ready",
   },
 ];
+
 
 function formatTime(value: number) {
   const minutes = Math.floor(value / 60);
@@ -132,10 +123,71 @@ function AuroraWorkspace() {
   const [futureClips, setFutureClips] = useState<Clip[][]>([]);
   const [renders, setRenders] = useState<Renders>({});
   const [shotPrompts, setShotPrompts] = useState<Record<string, { image: string; video: string }>>({});
+  const [projectId, setProjectId] = useState("");
+  const [title, setTitle] = useState("Baby 1");
+  const [brief, setBrief] = useState("");
+  const [world, setWorld] = useState<{ title: string; detail: string; tag: string }[]>([]);
+  const [imageModel, setImageModel] = useState(DEFAULT_IMAGE_MODEL);
+  const [videoModel, setVideoModel] = useState(DEFAULT_VIDEO_MODEL);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const activeClip = useMemo(() => clips.find((clip) => clip.id === selectedClip) ?? clips[0], [clips, selectedClip]);
   const filteredMedia = useMemo(() => media.filter((item) => item.name.toLowerCase().includes(mediaSearch.toLowerCase())), [media, mediaSearch]);
+
+  /** Loads this browser's saved workspace (projects, chat and shots) once on mount. */
+  useEffect(() => {
+    let key = window.localStorage.getItem("baby-owner-key");
+    if (!key) {
+      key = crypto.randomUUID();
+      window.localStorage.setItem("baby-owner-key", key);
+    }
+    let cancelled = false;
+    void loadStudio({ data: { ownerKey: key } })
+      .then((project) => {
+        if (cancelled) return;
+        setProjectId(project.id);
+        setTitle(project.title || "Baby 1");
+        setBrief(project.brief || "");
+        setRules(project.rules || "");
+        setWorld(project.world ?? []);
+        setActiveProjectTab(project.projectType || "Film");
+        setImageModel(project.imageModel || DEFAULT_IMAGE_MODEL);
+        setVideoModel(project.videoModel || DEFAULT_VIDEO_MODEL);
+        if (project.messages.length) {
+          setMessages(project.messages.map((message) => ({ id: message.id, role: message.role, text: message.text, meta: message.meta ?? undefined })));
+        }
+        if (project.shots.length) {
+          setClips(project.shots.map((shot, index) => ({
+            id: shot.id,
+            label: `${String(index + 1).padStart(2, "0")}  —  ${shot.title}`,
+            sub: `${Math.max(2, Math.round(shot.durationSeconds))}s · ${shot.summary.slice(0, 48)}`,
+            tone: TONES[index % TONES.length]!,
+            width: Math.max(10, Math.min(30, Math.round(shot.durationSeconds) * 3)),
+          })));
+          setSelectedClip(project.shots[0]!.id);
+          setShotPrompts(Object.fromEntries(project.shots.map((shot) => [shot.id, { image: shot.imagePrompt, video: shot.videoPrompt }])));
+          setRenders(Object.fromEntries(project.shots
+            .filter((shot) => shot.imageUrl || shot.videoUrl)
+            .map((shot) => [shot.id, {
+              status: "done" as const,
+              ...(shot.imageUrl ? { imageUrl: shot.imageUrl } : {}),
+              ...(shot.videoUrl ? { videoUrl: shot.videoUrl } : {}),
+            }])));
+        }
+      })
+      .catch(() => setToast("Your saved workspace could not be loaded."));
+    return () => { cancelled = true; };
+  }, []);
+
+  /** Persists project settings shortly after they stop changing. */
+  useEffect(() => {
+    if (!projectId) return;
+    const timer = window.setTimeout(() => {
+      void saveStudioSettings({ data: { projectId, title, brief, rules, projectType: activeProjectTab, imageModel, videoModel } }).catch(() => undefined);
+    }, 700);
+    return () => window.clearTimeout(timer);
+  }, [projectId, title, brief, rules, activeProjectTab, imageModel, videoModel]);
+
 
   useEffect(() => {
     if (!playing) return;
@@ -409,7 +461,7 @@ function AuroraWorkspace() {
   }
 
   function copyShareLink() {
-    void navigator.clipboard?.writeText("filmstudio.ai/project/night-signal");
+    void navigator.clipboard?.writeText("baby.studio/project/baby-1");
     notify("Share link copied to clipboard.");
   }
 
@@ -425,15 +477,15 @@ function AuroraWorkspace() {
             <button onClick={() => setProjectMenuOpen((open) => !open)} data-testid="button-project-name" className="group flex items-center gap-2 text-left">
               <span className="grid h-7 w-7 place-items-center rounded bg-primary text-primary-foreground"><Clapperboard size={15} /></span>
               <span>
-                <span className="block text-[11px] font-extrabold tracking-[.18em] text-foreground">FILMSTUDIO <span className="text-primary">AI</span></span>
-                <span className="block text-[9px] uppercase tracking-[.18em] text-muted-foreground">Project / Night Signal</span>
+                <span className="block text-[11px] font-extrabold tracking-[.18em] text-foreground">BABY <span className="text-primary">1</span></span>
+                <span className="block text-[9px] uppercase tracking-[.18em] text-muted-foreground">Project / Baby 1</span>
               </span>
               <ChevronDown size={13} className="text-muted-foreground transition-transform group-hover:translate-y-0.5" />
             </button>
             {projectMenuOpen && (
               <div className="absolute left-0 top-11 z-40 w-56 rounded-lg border border-border bg-popover p-2 shadow-2xl">
                 <p className="px-2 py-2 text-[10px] uppercase tracking-[.16em] text-muted-foreground">Current project</p>
-                <button onClick={() => notify("Project name is ready to rename.")} data-testid="button-rename-project" className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-xs hover:bg-secondary"><FileText size={14} /> Rename Night Signal</button>
+                <button onClick={() => notify("Project name is ready to rename.")} data-testid="button-rename-project" className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-xs hover:bg-secondary"><FileText size={14} /> Rename Baby 1</button>
                 <button onClick={() => notify("A duplicate project would keep the full production state.")} data-testid="button-duplicate-project" className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-xs hover:bg-secondary"><Copy size={14} /> Duplicate project</button>
                 <button onClick={() => { setMode("home"); setProjectMenuOpen(false); }} data-testid="button-back-to-projects" className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-xs hover:bg-secondary"><FolderOpen size={14} /> Back to projects</button>
               </div>
@@ -482,7 +534,7 @@ function AuroraWorkspace() {
             <IconButton label="Templates" onClick={() => notify("Template browser opened.")} testId="button-sidebar-templates"><LayoutTemplate size={18} /></IconButton>
             <IconButton label="Audio" onClick={() => { setMode("edit"); notify("Audio track selected."); }} testId="button-sidebar-audio"><Music2 size={18} /></IconButton>
           </div>
-          <IconButton label="Help" onClick={() => notify("FilmStudio help center opened.")} testId="button-sidebar-help"><CircleHelp size={18} /></IconButton>
+          <IconButton label="Help" onClick={() => notify("Baby help center opened.")} testId="button-sidebar-help"><CircleHelp size={18} /></IconButton>
         </aside>
         <main className="scrollbar-thin min-h-0 flex-1 overflow-y-auto">
           {mode === "home" ? (
@@ -551,10 +603,10 @@ function HomeWorkspace({ startCreating, notify }: { startCreating: (prompt: stri
       <div className="relative mx-auto max-w-5xl">
         <div className="mx-auto max-w-3xl text-center">
           <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-border/35 bg-primary/15 px-3 py-1.5 text-[10px] font-semibold text-primary">
-            <Sparkles size={12} /> Meet Agent Two
+            <Sparkles size={12} /> Meet Baby
           </div>
           <h1 className="text-4xl font-semibold leading-[1.05] tracking-[-.055em] text-foreground sm:text-6xl lg:text-7xl">
-            Make the video.<br /><span className="text-primary">Agent Two handles the rest.</span>
+            Make the video.<br /><span className="text-primary">Baby handles the rest.</span>
           </h1>
           <p className="mx-auto mt-6 max-w-xl text-sm leading-6 text-muted-foreground sm:text-base">
             Start with an idea, a script, or a brief. Your agent builds the story, finds the assets, and gives you every scene back editable.
@@ -600,8 +652,8 @@ function HomeWorkspace({ startCreating, notify }: { startCreating: (prompt: stri
           </div>
           <div className="grid gap-6 p-5 md:grid-cols-[.8fr_1.2fr] md:p-7">
             <div className="flex flex-col justify-center">
-              <div className="flex items-center gap-2 text-sm font-semibold text-foreground"><span className="grid h-7 w-7 place-items-center rounded-full bg-primary"><Bot size={14} /></span> Agent Two</div>
-              <p className="mt-4 max-w-xs text-xs leading-5 text-muted-foreground">Describe a video and Agent Two turns your intent into a script, scenes, voice, music, and a cut you can still change.</p>
+              <div className="flex items-center gap-2 text-sm font-semibold text-foreground"><span className="grid h-7 w-7 place-items-center rounded-full bg-primary"><Bot size={14} /></span> Baby</div>
+              <p className="mt-4 max-w-xs text-xs leading-5 text-muted-foreground">Describe a video and Baby turns your intent into a script, scenes, voice, music, and a cut you can still change.</p>
               <div className="mt-5 flex items-center gap-2 text-[10px] text-muted-foreground"><Check size={13} className="text-primary" /> Context stays attached to every scene</div>
             </div>
             <div className="grid grid-cols-2 gap-2">
@@ -686,8 +738,8 @@ function AgentWorkspace({
         <div className="flex items-center gap-3">
           <button onClick={() => notify("Back to projects is ready.")} data-testid="button-back-projects" className="grid h-8 w-8 place-items-center rounded border border-border text-muted-foreground hover:bg-secondary hover:text-foreground"><ArrowLeft size={15} /></button>
           <div>
-            <p className="mono text-[9px] uppercase tracking-[.2em] text-primary">Agent Two / individual video agent</p>
-            <h1 className="mt-1 text-sm font-bold">Night Signal <span className="ml-2 text-xs font-normal text-muted-foreground">· individual video agent</span></h1>
+            <p className="mono text-[9px] uppercase tracking-[.2em] text-primary">Baby / individual video agent</p>
+            <h1 className="mt-1 text-sm font-bold">Baby 1 <span className="ml-2 text-xs font-normal text-muted-foreground">· individual video agent</span></h1>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -734,7 +786,7 @@ function AgentWorkspace({
                   </div>
                 </div>
               ))}
-              {agentRunning && <div className="flex items-center gap-2 text-xs text-muted-foreground"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary" /> Agent Two is making production decisions…</div>}
+              {agentRunning && <div className="flex items-center gap-2 text-xs text-muted-foreground"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary" /> Baby is making production decisions…</div>}
             </div>
             <div className="border-t border-border/70 p-3">
               {composerFiles.length > 0 && <div className="mb-2 flex flex-wrap gap-1.5">{composerFiles.map((file) => <span key={file} className="rounded-full border border-accent/25 bg-accent/8 px-2 py-1 text-[9px] text-accent">{file}</span>)}</div>}
@@ -748,7 +800,7 @@ function AgentWorkspace({
                   <button onClick={() => setWorkflowOpen(!workflowOpen)} data-testid="button-agent-workflows" className="flex items-center gap-2 rounded border border-border px-2.5 py-1.5 text-[10px] text-muted-foreground hover:text-foreground"><WandSparkles size={12} className="text-primary" /> Workflows <ChevronDown size={11} /></button>
                   {workflowOpen && <div className="absolute bottom-9 left-0 z-30 w-64 rounded-lg border border-border bg-popover p-2 shadow-2xl">{workflowOptions.map((workflow) => <button key={workflow.label} onClick={() => selectWorkflow(workflow.label)} data-testid={`button-workflow-${workflow.label.toLowerCase().replace(/\W+/g, "-")}`} className="w-full rounded px-2.5 py-2 text-left hover:bg-secondary"><span className="block text-xs font-semibold">{workflow.label}</span><span className="mt-1 block text-[10px] text-muted-foreground">{workflow.detail}</span></button>)}</div>}
                 </div>
-                <div className="flex items-center gap-2"><span className="hidden text-[10px] text-muted-foreground sm:inline">Agent Two Pro</span><button onClick={() => notify("Agent settings opened.")} data-testid="button-agent-settings" className="text-muted-foreground hover:text-foreground"><Settings2 size={13} /></button></div>
+                <div className="flex items-center gap-2"><span className="hidden text-[10px] text-muted-foreground sm:inline">Baby Pro</span><button onClick={() => notify("Agent settings opened.")} data-testid="button-agent-settings" className="text-muted-foreground hover:text-foreground"><Settings2 size={13} /></button></div>
               </div>
               <input ref={composerFileRef} type="file" multiple accept="image/*,video/*,audio/*,.pdf,.txt" onChange={addReferenceFiles} className="hidden" data-testid="input-agent-reference" />
             </div>
@@ -787,16 +839,16 @@ function ContextView({ rules, setRules, rulesEditing, setRulesEditing, notify }:
       </section>
       <section className="reveal reveal-delay-1">
         <label htmlFor="context-description" className="mono text-[9px] uppercase tracking-[.18em] text-muted-foreground">Description</label>
-        <input id="context-description" defaultValue="NBA Josh — The One Hook" data-testid="input-context-description" className="mt-2 w-full border-b border-border bg-transparent pb-2 text-sm font-bold text-foreground outline-none focus:border-primary" />
-        <p className="mt-4 max-w-3xl text-xs leading-6 text-muted-foreground">25-second 16:9 cinematic lip-sync for NBA Josh, Out The Mud Records. Track: The One Hook (24.35s) at <span className="rounded bg-secondary px-1.5 py-0.5 text-[10px] text-foreground">SEQ 1.1</span>.</p>
+        <input id="context-description" defaultValue="NBA Josh — Untitled film" data-testid="input-context-description" className="mt-2 w-full border-b border-border bg-transparent pb-2 text-sm font-bold text-foreground outline-none focus:border-primary" />
+        <p className="mt-4 max-w-3xl text-xs leading-6 text-muted-foreground">25-second 16:9 cinematic lip-sync for NBA Josh, Out The Mud Records. Track: Untitled film (24.35s) at <span className="rounded bg-secondary px-1.5 py-0.5 text-[10px] text-foreground">SEQ 1.1</span>.</p>
         <p className="mt-3 max-w-3xl text-xs leading-6 text-muted-foreground">The one idea: Josh performs the hook, calm, on a wet night street, while police officers loop endlessly behind him and never catch up. He glances back once, smirks, walks off.</p>
         <p className="mt-3 text-xs leading-6 text-muted-foreground">Sunglasses off. Josh bottom-right, officers upper-left, empty center.</p>
-        <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">Brief: <span className="rounded bg-secondary px-1.5 py-0.5 text-[10px] text-foreground">NBA Josh — The One Hook</span> Artist lore: <span className="rounded bg-secondary px-1.5 py-0.5 text-[10px] text-foreground">SEQ 2.1</span></div>
+        <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">Brief: <span className="rounded bg-secondary px-1.5 py-0.5 text-[10px] text-foreground">NBA Josh — Untitled film</span> Artist lore: <span className="rounded bg-secondary px-1.5 py-0.5 text-[10px] text-foreground">SEQ 2.1</span></div>
       </section>
       <section className="rounded-xl border border-border bg-card/75 p-4 sm:p-5">
         <div className="flex items-center justify-between"><h3 className="text-sm font-bold">Briefs</h3><button onClick={() => notify("Brief context is already pinned to this project.")} data-testid="button-pin-brief" className="text-muted-foreground hover:text-foreground"><LockKeyhole size={14} /></button></div>
         <p className="mono mt-4 text-[9px] uppercase tracking-[.16em] text-muted-foreground">Brief</p>
-        <p className="mt-2 text-sm font-semibold">NBA Josh — The One Hook</p>
+        <p className="mt-2 text-sm font-semibold">NBA Josh — Untitled film</p>
         <p className="mt-1 text-xs leading-5 text-muted-foreground">25s 16:9 cinematic lip-sync. Josh performs the hook on a wet night street while the world loops behind him.</p>
       </section>
       <section>
@@ -822,7 +874,7 @@ function NotebookView({ agentRunning, agentStage, notify }: { agentRunning: bool
   return (
     <div className="space-y-5">
       <div className="rounded-xl border border-border bg-card/70 p-5">
-        <div className="flex items-center justify-between"><div><p className="mono text-[9px] uppercase tracking-[.18em] text-primary">Notebook / Page 1</p><h2 className="mt-2 text-2xl font-semibold tracking-[-.03em]">The One Hook</h2></div><button onClick={() => notify("Notebook page downloaded.")} data-testid="button-download-notebook" className="grid h-8 w-8 place-items-center rounded border border-border text-muted-foreground hover:bg-secondary hover:text-foreground"><Download size={14} /></button></div>
+        <div className="flex items-center justify-between"><div><p className="mono text-[9px] uppercase tracking-[.18em] text-primary">Notebook / Page 1</p><h2 className="mt-2 text-2xl font-semibold tracking-[-.03em]">Untitled film</h2></div><button onClick={() => notify("Notebook page downloaded.")} data-testid="button-download-notebook" className="grid h-8 w-8 place-items-center rounded border border-border text-muted-foreground hover:bg-secondary hover:text-foreground"><Download size={14} /></button></div>
         <p className="mt-4 max-w-xl text-xs leading-5 text-muted-foreground">A working production document the agent can read, revise, and hand back to the editable Slate without losing context.</p>
       </div>
       <div className="space-y-3">
@@ -844,7 +896,7 @@ function ScenesView({ clips, selectedClip, setSelectedClip, setMode, notify }: {
     <div className="space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="mono text-[9px] uppercase tracking-[.2em] text-muted-foreground">Agent Two / Scenes</p>
+          <p className="mono text-[9px] uppercase tracking-[.2em] text-muted-foreground">Baby / Scenes</p>
           <h2 className="mt-2 text-3xl font-semibold tracking-[-.03em]">Your film, scene by scene</h2>
           <p className="mt-2 max-w-2xl text-xs leading-5 text-muted-foreground">Review the generated cut, select a scene to revise, or open it in Slate for frame-accurate editing.</p>
         </div>
@@ -887,7 +939,7 @@ function FinalView({ clips, startExport, setMode, notify }: { clips: Clip[]; sta
     <div className="space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="mono text-[9px] uppercase tracking-[.2em] text-muted-foreground">Agent Two / Final</p>
+          <p className="mono text-[9px] uppercase tracking-[.2em] text-muted-foreground">Baby / Final</p>
           <h2 className="mt-2 text-3xl font-semibold tracking-[-.03em]">Ready for your final pass?</h2>
           <p className="mt-2 max-w-2xl text-xs leading-5 text-muted-foreground">The agent keeps the project editable until you approve the cut. Export a master or return to Slate for a precise adjustment.</p>
         </div>
@@ -897,8 +949,8 @@ function FinalView({ clips, startExport, setMode, notify }: { clips: Clip[]; sta
         <div className="relative aspect-video bg-[radial-gradient(circle_at_65%_30%,rgba(208,146,64,.5),transparent_18%),linear-gradient(135deg,#34291e,#101722_54%,#162d35)]">
           <div className="absolute inset-0 bg-[linear-gradient(135deg,transparent_25%,rgba(0,0,0,.45))]" />
           <div className="absolute bottom-5 left-5">
-            <p className="mono text-[9px] uppercase tracking-[.2em] text-primary">Night Signal</p>
-            <p className="mt-1 text-lg font-bold">The One Hook</p>
+            <p className="mono text-[9px] uppercase tracking-[.2em] text-primary">Baby 1</p>
+            <p className="mt-1 text-lg font-bold">Untitled film</p>
             <p className="mt-1 text-[10px] text-muted-foreground">{clips.length} scenes · 00:34 · 16:9 cinematic</p>
           </div>
           <button onClick={() => notify("Preview playback started.")} data-testid="button-final-preview" className="absolute inset-0 m-auto grid h-12 w-12 place-items-center rounded-full bg-primary text-primary-foreground shadow-xl transition-transform hover:scale-105"><Play size={20} fill="currentColor" /></button>
@@ -957,7 +1009,7 @@ function EditorWorkspace(props: EditorProps) {
   return (
     <section className="flex min-h-full flex-col">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-background px-4 py-3 sm:px-6">
-        <div><p className="mono text-[9px] uppercase tracking-[.2em] text-primary">Slate / sequence 01</p><h1 className="mt-1 text-sm font-bold">Night Signal <span className="ml-2 text-xs font-normal text-muted-foreground">· 00:34 · 16:9</span></h1></div>
+        <div><p className="mono text-[9px] uppercase tracking-[.2em] text-primary">Slate / sequence 01</p><h1 className="mt-1 text-sm font-bold">Baby 1 <span className="ml-2 text-xs font-normal text-muted-foreground">· 00:34 · 16:9</span></h1></div>
         <div className="flex items-center gap-2"><span className="hidden items-center gap-1.5 rounded-full border border-accent/20 bg-accent/8 px-2.5 py-1.5 text-[10px] text-accent sm:flex"><span className="h-1.5 w-1.5 rounded-full bg-accent" /> agent + editor synced</span><button onClick={copyShareLink} data-testid="button-share-project" className="flex items-center gap-2 rounded-md border border-border px-3 py-2 text-xs text-muted-foreground hover:text-foreground"><Copy size={13} /> Share</button><button onClick={startExport} data-testid="button-export-editor" className="flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-xs font-bold text-primary-foreground"><ArrowDownToLine size={14} /> Export</button></div>
       </div>
 
@@ -1122,7 +1174,7 @@ function EditorWorkspace(props: EditorProps) {
             </div>
             {exported ? (
               <>
-                <p className="text-xs leading-5 text-muted-foreground">Night Signal · {renderQuality} · {renderFormat} · 00:34. The master was rendered from your current Slate state.</p>
+                <p className="text-xs leading-5 text-muted-foreground">Baby 1 · {renderQuality} · {renderFormat} · 00:34. The master was rendered from your current Slate state.</p>
                 <button onClick={() => notify("Download started.")} data-testid="button-download-export" className="mt-5 flex w-full items-center justify-center gap-2 rounded-md bg-primary py-3 text-xs font-bold text-primary-foreground"><ArrowDownToLine size={15} /> Download master</button>
                 <button onClick={() => notify("Export panel closed.")} data-testid="button-close-export" className="mt-2 w-full py-2 text-xs text-muted-foreground hover:text-foreground">Close</button>
               </>

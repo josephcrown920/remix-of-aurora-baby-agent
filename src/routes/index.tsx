@@ -417,7 +417,7 @@ function AuroraWorkspace() {
 
   return (
     <div className="film-shell film-grain flex min-h-[100dvh] flex-col overflow-hidden">
-      <header className="z-30 flex h-14 shrink-0 items-center justify-between border-b border-border/80 bg-[#0d0f14]/90 px-3 backdrop-blur-md sm:px-5">
+      <header className="z-30 flex h-14 shrink-0 items-center justify-between border-b border-border/80 bg-card/90 px-3 backdrop-blur-md sm:px-5">
         <div className="flex items-center gap-3">
           <IconButton label="Open navigation" onClick={() => setMobileMenuOpen((open) => !open)} active={mobileMenuOpen} testId="button-open-navigation"><Menu size={18} /></IconButton>
           <div className="hidden h-5 w-px bg-border sm:block" />
@@ -431,7 +431,7 @@ function AuroraWorkspace() {
               <ChevronDown size={13} className="text-muted-foreground transition-transform group-hover:translate-y-0.5" />
             </button>
             {projectMenuOpen && (
-              <div className="absolute left-0 top-11 z-40 w-56 rounded-lg border border-border bg-[#171a20] p-2 shadow-2xl">
+              <div className="absolute left-0 top-11 z-40 w-56 rounded-lg border border-border bg-popover p-2 shadow-2xl">
                 <p className="px-2 py-2 text-[10px] uppercase tracking-[.16em] text-muted-foreground">Current project</p>
                 <button onClick={() => notify("Project name is ready to rename.")} data-testid="button-rename-project" className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-xs hover:bg-secondary"><FileText size={14} /> Rename Night Signal</button>
                 <button onClick={() => notify("A duplicate project would keep the full production state.")} data-testid="button-duplicate-project" className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-xs hover:bg-secondary"><Copy size={14} /> Duplicate project</button>
@@ -441,10 +441,10 @@ function AuroraWorkspace() {
           </div>
         </div>
         <div className="hidden items-center gap-1 rounded-lg border border-border/80 bg-secondary/45 p-1 md:flex">
-          <button onClick={() => setMode("agent")} data-testid="button-switch-agent" className={`flex items-center gap-2 rounded-md px-4 py-1.5 text-xs font-semibold transition-all ${mode === "agent" ? "bg-[#2b2b32] text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+          <button onClick={() => setMode("agent")} data-testid="button-switch-agent" className={`flex items-center gap-2 rounded-md px-4 py-1.5 text-xs font-semibold transition-all ${mode === "agent" ? "bg-secondary text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
             <Bot size={14} className={mode === "agent" ? "text-accent" : ""} /> Agent workspace
           </button>
-          <button onClick={() => setMode("edit")} data-testid="button-switch-editor" className={`flex items-center gap-2 rounded-md px-4 py-1.5 text-xs font-semibold transition-all ${mode === "edit" ? "bg-[#2b2b32] text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+          <button onClick={() => setMode("edit")} data-testid="button-switch-editor" className={`flex items-center gap-2 rounded-md px-4 py-1.5 text-xs font-semibold transition-all ${mode === "edit" ? "bg-secondary text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
             <Clapperboard size={14} className={mode === "edit" ? "text-primary" : ""} /> Slate editor
           </button>
         </div>
@@ -462,7 +462,7 @@ function AuroraWorkspace() {
       </header>
 
       {mobileMenuOpen && (
-        <div className="absolute left-3 top-14 z-40 w-60 rounded-b-lg border border-t-0 border-border bg-[#171a20] p-3 shadow-2xl md:hidden">
+        <div className="absolute left-3 top-14 z-40 w-60 rounded-b-lg border border-t-0 border-border bg-popover p-3 shadow-2xl md:hidden">
           <p className="px-2 py-2 text-[10px] uppercase tracking-[.16em] text-muted-foreground">Workspace</p>
           <button onClick={() => { setMode("home"); setMobileMenuOpen(false); }} data-testid="button-mobile-projects" className="flex w-full items-center gap-3 rounded-md px-2 py-2.5 text-left text-xs hover:bg-secondary"><FolderOpen size={15} /> Projects</button>
           <button onClick={() => { setMode("agent"); setMobileMenuOpen(false); }} data-testid="button-mobile-agent" className="flex w-full items-center gap-3 rounded-md px-2 py-2.5 text-left text-xs hover:bg-secondary"><Bot size={15} className="text-accent" /> Agent workspace</button>
@@ -517,7 +517,7 @@ function AuroraWorkspace() {
       </div>
       <input ref={fileRef} type="file" multiple accept="video/*,audio/*,image/*" onChange={handleFiles} className="hidden" data-testid="input-media-file" />
       {toast && (
-        <div data-testid="status-toast" className="fixed bottom-5 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-full border border-accent/30 bg-[#182b2d] px-4 py-2.5 text-xs font-semibold text-[#c4f5ed] shadow-2xl">
+        <div data-testid="status-toast" className="fixed bottom-5 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-full border border-accent/30 bg-accent/15 px-4 py-2.5 text-xs font-semibold text-accent-foreground shadow-2xl">
           <Check size={14} /> {toast}
         </div>
       )}
@@ -545,37 +545,37 @@ function HomeWorkspace({ startCreating, notify }: { startCreating: (prompt: stri
   }
 
   return (
-    <section className="relative min-h-[calc(100dvh-56px)] overflow-hidden bg-[#111112] px-4 py-10 sm:px-8 lg:px-14 lg:py-16">
+    <section className="relative min-h-[calc(100dvh-56px)] overflow-hidden bg-background px-4 py-10 sm:px-8 lg:px-14 lg:py-16">
       <div className="pointer-events-none absolute inset-0 opacity-60 [background-image:linear-gradient(rgba(255,255,255,.045)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.045)_1px,transparent_1px)] [background-size:32px_32px]" />
-      <div className="pointer-events-none absolute -top-28 left-1/2 h-72 w-[42rem] -translate-x-1/2 rounded-full bg-[#7548d8]/20 blur-3xl" />
+      <div className="pointer-events-none absolute -top-28 left-1/2 h-72 w-[42rem] -translate-x-1/2 rounded-full bg-primary/20 blur-3xl" />
       <div className="relative mx-auto max-w-5xl">
         <div className="mx-auto max-w-3xl text-center">
-          <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#9976ed]/35 bg-[#6c43ca]/20 px-3 py-1.5 text-[10px] font-semibold text-[#d5c8ff]">
+          <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-border/35 bg-primary/15 px-3 py-1.5 text-[10px] font-semibold text-primary">
             <Sparkles size={12} /> Meet Agent Two
           </div>
-          <h1 className="text-4xl font-semibold leading-[1.05] tracking-[-.055em] text-white sm:text-6xl lg:text-7xl">
-            Make the video.<br /><span className="text-[#bcb1f9]">Agent Two handles the rest.</span>
+          <h1 className="text-4xl font-semibold leading-[1.05] tracking-[-.055em] text-foreground sm:text-6xl lg:text-7xl">
+            Make the video.<br /><span className="text-primary">Agent Two handles the rest.</span>
           </h1>
-          <p className="mx-auto mt-6 max-w-xl text-sm leading-6 text-white/60 sm:text-base">
+          <p className="mx-auto mt-6 max-w-xl text-sm leading-6 text-muted-foreground sm:text-base">
             Start with an idea, a script, or a brief. Your agent builds the story, finds the assets, and gives you every scene back editable.
           </p>
         </div>
 
-        <div className="mx-auto mt-10 max-w-3xl rounded-2xl border border-white/15 bg-[#1d1d1f]/95 p-3 shadow-2xl shadow-black/40 backdrop-blur-md">
+        <div className="mx-auto mt-10 max-w-3xl rounded-2xl border border-border bg-card/95 p-3 shadow-2xl shadow-black/40 backdrop-blur-md">
           <textarea
             value={idea}
             onChange={(event) => setIdea(event.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="What do you want to create?"
             data-testid="input-create-idea"
-            className="min-h-28 w-full resize-none bg-transparent px-3 py-2 text-sm leading-6 text-white outline-none placeholder:text-white/35"
+            className="min-h-28 w-full resize-none bg-transparent px-3 py-2 text-sm leading-6 text-foreground outline-none placeholder:text-muted-foreground"
           />
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 px-2 pt-3">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-2 pt-3">
             <div className="flex items-center gap-2">
-              <button onClick={() => notify("Reference upload is ready for your brief.")} data-testid="button-home-attach" className="grid h-8 w-8 place-items-center rounded-md border border-white/10 text-white/55 hover:bg-white/10 hover:text-white"><Plus size={15} /></button>
-              <button onClick={() => notify("Choose a workflow after you describe your idea.")} data-testid="button-home-workflow" className="flex items-center gap-2 rounded-md border border-white/10 px-3 py-2 text-[10px] text-white/60 hover:bg-white/10 hover:text-white"><WandSparkles size={12} /> Workflow <ChevronDown size={11} /></button>
+              <button onClick={() => notify("Reference upload is ready for your brief.")} data-testid="button-home-attach" className="grid h-8 w-8 place-items-center rounded-md border border-border text-muted-foreground hover:bg-secondary hover:text-foreground"><Plus size={15} /></button>
+              <button onClick={() => notify("Choose a workflow after you describe your idea.")} data-testid="button-home-workflow" className="flex items-center gap-2 rounded-md border border-border px-3 py-2 text-[10px] text-muted-foreground hover:bg-secondary hover:text-foreground"><WandSparkles size={12} /> Workflow <ChevronDown size={11} /></button>
             </div>
-            <button onClick={submitIdea} data-testid="button-start-creating" className="flex items-center gap-2 rounded-lg bg-white px-4 py-2.5 text-xs font-bold text-[#19191b] transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-40" disabled={!idea.trim()}>
+            <button onClick={submitIdea} data-testid="button-start-creating" className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-xs font-bold text-primary-foreground transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-40" disabled={!idea.trim()}>
               Start creating <ArrowRight size={14} />
             </button>
           </div>
@@ -583,32 +583,32 @@ function HomeWorkspace({ startCreating, notify }: { startCreating: (prompt: stri
 
         <div className="mx-auto mt-5 flex max-w-3xl flex-wrap justify-center gap-2">
           {examples.map((example, index) => (
-            <button key={example} onClick={() => setIdea(example)} data-testid={`button-example-${index}`} className="rounded-full border border-white/10 bg-white/[.035] px-3 py-2 text-[10px] text-white/55 transition-colors hover:border-[#a18aef]/40 hover:bg-[#6f4bd0]/10 hover:text-white/85">
+            <button key={example} onClick={() => setIdea(example)} data-testid={`button-example-${index}`} className="rounded-full border border-border bg-secondary/50 px-3 py-2 text-[10px] text-muted-foreground transition-colors hover:border-border/40 hover:bg-primary/10 hover:text-foreground/80">
               {example}
             </button>
           ))}
         </div>
 
-        <div className="mt-16 overflow-hidden rounded-xl border border-white/10 bg-[#18181a] shadow-2xl">
-          <div className="flex items-center gap-1 overflow-x-auto border-b border-white/10 px-2">
+        <div className="mt-16 overflow-hidden rounded-xl border border-border bg-background shadow-2xl">
+          <div className="flex items-center gap-1 overflow-x-auto border-b border-border px-2">
             {projectTabs.map((tab, index) => (
-              <button key={tab} onClick={() => notify(`${tab} project template selected.`)} data-testid={`button-home-project-${index}`} className={`flex shrink-0 items-center gap-2 px-4 py-3 text-[10px] ${index === 0 ? "border-b-2 border-white text-white" : "text-white/45 hover:text-white"}`}>
+              <button key={tab} onClick={() => notify(`${tab} project template selected.`)} data-testid={`button-home-project-${index}`} className={`flex shrink-0 items-center gap-2 px-4 py-3 text-[10px] ${index === 0 ? "border-b-2 border-primary text-primary" : "text-muted-foreground hover:text-foreground"}`}>
                 <FileText size={12} /> {tab}
               </button>
             ))}
-            <Plus size={14} className="ml-2 text-white/45" />
+            <Plus size={14} className="ml-2 text-muted-foreground" />
           </div>
           <div className="grid gap-6 p-5 md:grid-cols-[.8fr_1.2fr] md:p-7">
             <div className="flex flex-col justify-center">
-              <div className="flex items-center gap-2 text-sm font-semibold text-white"><span className="grid h-7 w-7 place-items-center rounded-full bg-[#784ede]"><Bot size={14} /></span> Agent Two</div>
-              <p className="mt-4 max-w-xs text-xs leading-5 text-white/55">Describe a video and Agent Two turns your intent into a script, scenes, voice, music, and a cut you can still change.</p>
-              <div className="mt-5 flex items-center gap-2 text-[10px] text-white/45"><Check size={13} className="text-[#a992f4]" /> Context stays attached to every scene</div>
+              <div className="flex items-center gap-2 text-sm font-semibold text-foreground"><span className="grid h-7 w-7 place-items-center rounded-full bg-primary"><Bot size={14} /></span> Agent Two</div>
+              <p className="mt-4 max-w-xs text-xs leading-5 text-muted-foreground">Describe a video and Agent Two turns your intent into a script, scenes, voice, music, and a cut you can still change.</p>
+              <div className="mt-5 flex items-center gap-2 text-[10px] text-muted-foreground"><Check size={13} className="text-primary" /> Context stays attached to every scene</div>
             </div>
             <div className="grid grid-cols-2 gap-2">
               {initialClips.slice(0, 4).map((clip, index) => (
                 <div key={clip.id} className={`relative aspect-video overflow-hidden rounded-md bg-gradient-to-br ${clip.tone}`}>
                   <div className="absolute inset-0 bg-black/20" />
-                  <span className="absolute left-2 top-2 mono text-[8px] text-white/70">SCENE {String(index + 1).padStart(2, "0")}</span>
+                  <span className="absolute left-2 top-2 mono text-[8px] text-foreground/75">SCENE {String(index + 1).padStart(2, "0")}</span>
                 </div>
               ))}
             </div>
@@ -662,14 +662,14 @@ function AgentWorkspace({
 
   return (
     <section className="mx-auto max-w-[1280px] px-4 py-5 sm:px-8 lg:py-7">
-      <div className="mb-5 overflow-x-auto rounded-t-xl border border-border bg-[#101114]">
+      <div className="mb-5 overflow-x-auto rounded-t-xl border border-border bg-card">
         <div className="flex min-w-max items-center">
           {projectTabs.map((tab) => (
             <button
               key={tab}
               onClick={() => { setActiveProjectTab(tab); notify(`${tab} project view selected.`); }}
               data-testid={`button-project-tab-${tab.toLowerCase().replace(/\W+/g, "-")}`}
-              className={`flex items-center gap-2 border-r border-border px-4 py-3 text-[10px] font-semibold transition-colors ${activeProjectTab === tab ? "bg-[#242528] text-foreground" : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground"}`}
+              className={`flex items-center gap-2 border-r border-border px-4 py-3 text-[10px] font-semibold transition-colors ${activeProjectTab === tab ? "bg-secondary text-foreground" : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground"}`}
             >
               <FileText size={12} className={activeProjectTab === tab ? "text-primary" : ""} />
               {tab}
@@ -677,8 +677,8 @@ function AgentWorkspace({
           ))}
           <button onClick={() => notify("New project created from this workspace.")} data-testid="button-new-project-tab" className="grid h-10 w-10 place-items-center text-muted-foreground hover:bg-secondary/60 hover:text-foreground" aria-label="Create a new project"><Plus size={15} /></button>
           <div className="ml-auto hidden items-center gap-1 px-3 sm:flex">
-            <span className="grid h-6 w-6 place-items-center rounded-full bg-[#a67ce8] text-[9px] font-bold text-white">A</span>
-            <span className="grid h-6 w-6 -ml-2 place-items-center rounded-full bg-[#d2b875] text-[9px] font-bold text-[#2b2418]">Y</span>
+            <span className="grid h-6 w-6 place-items-center rounded-full bg-primary text-[9px] font-bold text-foreground">A</span>
+            <span className="grid h-6 w-6 -ml-2 place-items-center rounded-full bg-accent text-[9px] font-bold text-primary-foreground">Y</span>
           </div>
         </div>
       </div>
@@ -719,7 +719,7 @@ function AgentWorkspace({
           {agentTab === "scenes" && <ScenesView clips={clips} selectedClip={selectedClip} setSelectedClip={setSelectedClip} setMode={setMode} notify={notify} />}
           {agentTab === "final" && <FinalView clips={clips} startExport={startExport} setMode={setMode} notify={notify} />}
 
-          <div className="mt-5 rounded-xl border border-border bg-[#1a1c20] shadow-md">
+          <div className="mt-5 rounded-xl border border-border bg-card shadow-md">
             <div className="flex items-center justify-between border-b border-border/70 px-4 py-3">
               <div className="flex items-center gap-2 text-[10px] uppercase tracking-[.16em] text-muted-foreground"><Sparkles size={13} className="text-primary" /> Agent conversation</div>
               <span className="mono text-[9px] text-muted-foreground">{agentRunning ? "working" : "ready"}</span>
@@ -727,8 +727,8 @@ function AgentWorkspace({
             <div className="max-h-52 space-y-3 overflow-y-auto p-4">
               {messages.slice(-4).map((message) => (
                 <div key={message.id} data-testid={`message-agent-${message.id}`} className={`flex gap-3 ${message.role === "user" ? "justify-end" : ""}`}>
-                  {message.role === "agent" && <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full bg-[#c6abc9]/20 text-[#d9bfd9]"><Bot size={13} /></span>}
-                  <div className={`max-w-[82%] rounded-lg px-3 py-2.5 text-xs leading-5 ${message.role === "user" ? "bg-[#293447] text-foreground" : "bg-[#25272b] text-muted-foreground"}`}>
+                  {message.role === "agent" && <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full bg-accent/20/20 text-accent"><Bot size={13} /></span>}
+                  <div className={`max-w-[82%] rounded-lg px-3 py-2.5 text-xs leading-5 ${message.role === "user" ? "bg-secondary text-foreground" : "bg-secondary text-muted-foreground"}`}>
                     <p>{message.text}</p>
                     {message.meta && <p className="mono mt-1.5 text-[8px] uppercase tracking-[.12em] text-muted-foreground/70">{message.meta}</p>}
                   </div>
@@ -738,7 +738,7 @@ function AgentWorkspace({
             </div>
             <div className="border-t border-border/70 p-3">
               {composerFiles.length > 0 && <div className="mb-2 flex flex-wrap gap-1.5">{composerFiles.map((file) => <span key={file} className="rounded-full border border-accent/25 bg-accent/8 px-2 py-1 text-[9px] text-accent">{file}</span>)}</div>}
-              <div className="flex items-end gap-2 rounded-lg border border-border bg-[#101217] p-2">
+              <div className="flex items-end gap-2 rounded-lg border border-border bg-background p-2">
                 <button onClick={() => composerFileRef.current?.click()} data-testid="button-attach-reference" className="grid h-9 w-9 shrink-0 place-items-center rounded-md border border-border text-muted-foreground hover:bg-secondary hover:text-foreground"><Plus size={16} /></button>
                 <textarea value={composer} onChange={(event) => setComposer(event.target.value)} onKeyDown={handleComposerKeyDown} placeholder="Tell me what to change, make, or keep…" data-testid="input-agent-composer" className="max-h-24 min-h-9 flex-1 resize-none bg-transparent px-1 py-2 text-xs leading-5 text-foreground outline-none placeholder:text-muted-foreground" />
                 <button onClick={submitComposer} disabled={agentRunning || !composer.trim()} data-testid="button-send-agent-message" className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-primary text-primary-foreground transition-transform hover:scale-105 disabled:cursor-not-allowed disabled:opacity-40"><Send size={15} /></button>
@@ -746,7 +746,7 @@ function AgentWorkspace({
               <div className="mt-2 flex items-center justify-between gap-2">
                 <div className="relative">
                   <button onClick={() => setWorkflowOpen(!workflowOpen)} data-testid="button-agent-workflows" className="flex items-center gap-2 rounded border border-border px-2.5 py-1.5 text-[10px] text-muted-foreground hover:text-foreground"><WandSparkles size={12} className="text-primary" /> Workflows <ChevronDown size={11} /></button>
-                  {workflowOpen && <div className="absolute bottom-9 left-0 z-30 w-64 rounded-lg border border-border bg-[#171a20] p-2 shadow-2xl">{workflowOptions.map((workflow) => <button key={workflow.label} onClick={() => selectWorkflow(workflow.label)} data-testid={`button-workflow-${workflow.label.toLowerCase().replace(/\W+/g, "-")}`} className="w-full rounded px-2.5 py-2 text-left hover:bg-secondary"><span className="block text-xs font-semibold">{workflow.label}</span><span className="mt-1 block text-[10px] text-muted-foreground">{workflow.detail}</span></button>)}</div>}
+                  {workflowOpen && <div className="absolute bottom-9 left-0 z-30 w-64 rounded-lg border border-border bg-popover p-2 shadow-2xl">{workflowOptions.map((workflow) => <button key={workflow.label} onClick={() => selectWorkflow(workflow.label)} data-testid={`button-workflow-${workflow.label.toLowerCase().replace(/\W+/g, "-")}`} className="w-full rounded px-2.5 py-2 text-left hover:bg-secondary"><span className="block text-xs font-semibold">{workflow.label}</span><span className="mt-1 block text-[10px] text-muted-foreground">{workflow.detail}</span></button>)}</div>}
                 </div>
                 <div className="flex items-center gap-2"><span className="hidden text-[10px] text-muted-foreground sm:inline">Agent Two Pro</span><button onClick={() => notify("Agent settings opened.")} data-testid="button-agent-settings" className="text-muted-foreground hover:text-foreground"><Settings2 size={13} /></button></div>
               </div>
@@ -860,8 +860,8 @@ function ScenesView({ clips, selectedClip, setSelectedClip, setMode, notify }: {
           >
             <div className={`relative aspect-video bg-gradient-to-br ${clip.tone}`}>
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_72%_28%,rgba(244,190,108,.35),transparent_20%),linear-gradient(135deg,transparent,rgba(5,8,14,.6))]" />
-              <span className="absolute left-3 top-3 rounded bg-[#0b0d12]/70 px-2 py-1 mono text-[9px] text-[#e8ddc7]">SCENE {String(index + 1).padStart(2, "0")}</span>
-              <span className="absolute bottom-3 right-3 rounded bg-[#0b0d12]/70 px-2 py-1 mono text-[9px] text-[#e8ddc7]">{clip.sub}</span>
+              <span className="absolute left-3 top-3 rounded bg-background/70 px-2 py-1 mono text-[9px] text-foreground">SCENE {String(index + 1).padStart(2, "0")}</span>
+              <span className="absolute bottom-3 right-3 rounded bg-background/70 px-2 py-1 mono text-[9px] text-foreground">{clip.sub}</span>
               <span className="absolute inset-0 grid place-items-center opacity-0 transition-opacity group-hover:opacity-100"><Play size={28} className="text-primary" /></span>
             </div>
             <div className="flex items-center justify-between gap-3 p-3">
@@ -893,15 +893,15 @@ function FinalView({ clips, startExport, setMode, notify }: { clips: Clip[]; sta
         </div>
         <span className="rounded-full border border-accent/20 bg-accent/8 px-2.5 py-1.5 text-[10px] text-accent">Context preserved</span>
       </div>
-      <div className="overflow-hidden rounded-xl border border-border bg-[#111319]">
+      <div className="overflow-hidden rounded-xl border border-border bg-card">
         <div className="relative aspect-video bg-[radial-gradient(circle_at_65%_30%,rgba(208,146,64,.5),transparent_18%),linear-gradient(135deg,#34291e,#101722_54%,#162d35)]">
           <div className="absolute inset-0 bg-[linear-gradient(135deg,transparent_25%,rgba(0,0,0,.45))]" />
           <div className="absolute bottom-5 left-5">
             <p className="mono text-[9px] uppercase tracking-[.2em] text-primary">Night Signal</p>
             <p className="mt-1 text-lg font-bold">The One Hook</p>
-            <p className="mt-1 text-[10px] text-white/65">{clips.length} scenes · 00:34 · 16:9 cinematic</p>
+            <p className="mt-1 text-[10px] text-muted-foreground">{clips.length} scenes · 00:34 · 16:9 cinematic</p>
           </div>
-          <button onClick={() => notify("Preview playback started.")} data-testid="button-final-preview" className="absolute inset-0 m-auto grid h-12 w-12 place-items-center rounded-full bg-white text-[#101217] shadow-xl transition-transform hover:scale-105"><Play size={20} fill="currentColor" /></button>
+          <button onClick={() => notify("Preview playback started.")} data-testid="button-final-preview" className="absolute inset-0 m-auto grid h-12 w-12 place-items-center rounded-full bg-primary text-primary-foreground shadow-xl transition-transform hover:scale-105"><Play size={20} fill="currentColor" /></button>
         </div>
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3">
           <div className="flex items-center gap-2 text-[10px] text-muted-foreground"><Check size={13} className="text-accent" /> Voice, captions, music, and continuity checked</div>
@@ -956,31 +956,31 @@ function EditorWorkspace(props: EditorProps) {
 
   return (
     <section className="flex min-h-full flex-col">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-[#101217] px-4 py-3 sm:px-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-background px-4 py-3 sm:px-6">
         <div><p className="mono text-[9px] uppercase tracking-[.2em] text-primary">Slate / sequence 01</p><h1 className="mt-1 text-sm font-bold">Night Signal <span className="ml-2 text-xs font-normal text-muted-foreground">· 00:34 · 16:9</span></h1></div>
         <div className="flex items-center gap-2"><span className="hidden items-center gap-1.5 rounded-full border border-accent/20 bg-accent/8 px-2.5 py-1.5 text-[10px] text-accent sm:flex"><span className="h-1.5 w-1.5 rounded-full bg-accent" /> agent + editor synced</span><button onClick={copyShareLink} data-testid="button-share-project" className="flex items-center gap-2 rounded-md border border-border px-3 py-2 text-xs text-muted-foreground hover:text-foreground"><Copy size={13} /> Share</button><button onClick={startExport} data-testid="button-export-editor" className="flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-xs font-bold text-primary-foreground"><ArrowDownToLine size={14} /> Export</button></div>
       </div>
 
       <div className="grid min-h-0 flex-1 xl:grid-cols-[minmax(0,1fr)_300px]">
         <div className="min-w-0">
-          <div className="grid gap-3 bg-[#0b0d12] p-4 sm:grid-cols-[minmax(0,1fr)_220px] sm:p-6">
-            <div className="relative aspect-video overflow-hidden rounded-md border border-border bg-[#171920] shadow-md">
+          <div className="grid gap-3 bg-background p-4 sm:grid-cols-[minmax(0,1fr)_220px] sm:p-6">
+            <div className="relative aspect-video overflow-hidden rounded-md border border-border bg-card shadow-md">
               <div className={`absolute inset-0 bg-gradient-to-br ${safeClip?.tone ?? "from-[#2a3340] to-[#10131b]"}`} />
               <div className="absolute inset-0 opacity-40" style={{ background: "radial-gradient(ellipse at 65% 35%, rgba(244,181,82,.55), transparent 26%), linear-gradient(120deg, transparent 40%, rgba(8,13,18,.75) 73%)" }} />
               <div className="absolute inset-0 bg-[linear-gradient(transparent_49.5%,rgba(255,255,255,.06)_50%,transparent_50.5%),linear-gradient(90deg,transparent_49.5%,rgba(255,255,255,.06)_50%,transparent_50.5%)] opacity-50" />
-              <div className="absolute left-4 top-4 flex items-center gap-2 rounded bg-[#0b0d12]/70 px-2 py-1 text-[9px] uppercase tracking-[.16em] text-[#d6d2c4] backdrop-blur"><span className="h-1.5 w-1.5 rounded-full bg-primary" /> preview / {safeClip?.id.replace("shot-", "shot ")}</div>
-              <div className="absolute inset-0 flex items-center justify-center"><span className="grid h-16 w-16 place-items-center rounded-full border border-[#e8ddc7]/25 bg-[#0b0d12]/20 text-[#e8ddc7]/80 backdrop-blur-sm">{playing ? <Pause size={24} fill="currentColor" /> : <Play size={24} fill="currentColor" className="ml-1" />}</span></div>
-              <div className="absolute bottom-0 left-0 right-0 flex items-end justify-between bg-gradient-to-t from-[#080a0e]/90 to-transparent p-4 pt-12"><div><p className="mono text-[9px] uppercase tracking-[.15em] text-primary">Current frame</p><p className="mt-1 max-w-sm text-sm font-semibold text-[#eee8da]">{safeClip?.label.split("  —  ")[1]}</p></div><span className="mono text-xs text-[#ded6c5]">{formatTime(time)} / 00:34</span></div>
+              <div className="absolute left-4 top-4 flex items-center gap-2 rounded bg-background/70 px-2 py-1 text-[9px] uppercase tracking-[.16em] text-muted-foreground backdrop-blur"><span className="h-1.5 w-1.5 rounded-full bg-primary" /> preview / {safeClip?.id.replace("shot-", "shot ")}</div>
+              <div className="absolute inset-0 flex items-center justify-center"><span className="grid h-16 w-16 place-items-center rounded-full border border-border/25 bg-background/20 text-foreground/80 backdrop-blur-sm">{playing ? <Pause size={24} fill="currentColor" /> : <Play size={24} fill="currentColor" className="ml-1" />}</span></div>
+              <div className="absolute bottom-0 left-0 right-0 flex items-end justify-between bg-gradient-to-t from-[#080a0e]/90 to-transparent p-4 pt-12"><div><p className="mono text-[9px] uppercase tracking-[.15em] text-primary">Current frame</p><p className="mt-1 max-w-sm text-sm font-semibold text-foreground">{safeClip?.label.split("  —  ")[1]}</p></div><span className="mono text-xs text-foreground">{formatTime(time)} / 00:34</span></div>
               <span className="absolute bottom-14 left-[49%] h-10 w-px bg-primary/80" />
             </div>
-            <div className="flex aspect-video flex-col justify-between rounded-md border border-border bg-[#13161c] p-4">
+            <div className="flex aspect-video flex-col justify-between rounded-md border border-border bg-card p-4">
               <div className="flex items-center justify-between"><span className="mono text-[9px] uppercase tracking-[.17em] text-muted-foreground">Shot notes</span><button onClick={() => notify("Shot notes copied.")} data-testid="button-copy-shot-notes" className="text-muted-foreground hover:text-foreground"><Copy size={13} /></button></div>
               <div><p className="text-sm font-bold leading-5">{safeClip?.label.split("  —  ")[1]}</p><p className="mt-2 text-[11px] leading-5 text-muted-foreground">35mm / low angle / slow track<br />Amber practicals · shallow depth</p></div>
               <div className="flex items-center gap-2 text-[10px] text-accent"><span className="h-1.5 w-1.5 rounded-full bg-accent" /> continuity approved</div>
             </div>
           </div>
 
-          <div className="border-y border-border bg-[#111319] px-4 py-3 sm:px-6">
+          <div className="border-y border-border bg-card px-4 py-3 sm:px-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1">
                 <IconButton label="Previous frame" onClick={() => setTime(Math.max(0, time - 0.5))} testId="button-previous-frame"><ChevronLeft size={16} /></IconButton>
@@ -995,10 +995,10 @@ function EditorWorkspace(props: EditorProps) {
                 <IconButton label="Toggle inspector" onClick={() => setInspectorOpen(!inspectorOpen)} active={inspectorOpen} testId="button-toggle-inspector"><PanelRight size={16} /></IconButton>
               </div>
             </div>
-            <input type="range" min="0" max="34" step=".1" value={time} onChange={(event) => setTime(Number(event.target.value))} data-testid="input-timeline-scrubber" className="mt-3 h-1.5 w-full cursor-pointer accent-[#efb657]" />
+            <input type="range" min="0" max="34" step=".1" value={time} onChange={(event) => setTime(Number(event.target.value))} data-testid="input-timeline-scrubber" className="mt-3 h-1.5 w-full cursor-pointer accent-[hsl(var(--primary))]" />
           </div>
 
-          <div className="border-b border-border bg-[#101217]">
+          <div className="border-b border-border bg-background">
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-2.5 sm:px-6">
               <div className="flex items-center gap-3"><span className="text-[10px] font-bold uppercase tracking-[.15em] text-foreground">Timeline</span><span className="text-[10px] text-muted-foreground">{clips.length} shots · 3 tracks</span></div>
               <div className="flex items-center gap-2">
@@ -1006,7 +1006,7 @@ function EditorWorkspace(props: EditorProps) {
                 <button onClick={onDuplicate} data-testid="button-duplicate-clip" className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground"><Copy size={12} /> Duplicate</button>
                 <div className="mx-1 h-4 w-px bg-border" />
                 <button onClick={() => setZoom(Math.max(0.7, Number((zoom - 0.15).toFixed(2))))} data-testid="button-zoom-out" className="text-muted-foreground hover:text-foreground"><ZoomOut size={14} /></button>
-                <input type="range" min=".7" max="1.8" step=".1" value={zoom} onChange={(event) => setZoom(Number(event.target.value))} data-testid="input-timeline-zoom" className="w-20 accent-[#efb657]" />
+                <input type="range" min=".7" max="1.8" step=".1" value={zoom} onChange={(event) => setZoom(Number(event.target.value))} data-testid="input-timeline-zoom" className="w-20 accent-[hsl(var(--primary))]" />
                 <button onClick={() => setZoom(Math.min(1.8, Number((zoom + 0.15).toFixed(2))))} data-testid="button-zoom-in" className="text-muted-foreground hover:text-foreground"><ZoomIn size={14} /></button>
                 <span className="mono w-8 text-right text-[9px] text-muted-foreground">{Math.round(zoom * 100)}%</span>
               </div>
@@ -1015,14 +1015,14 @@ function EditorWorkspace(props: EditorProps) {
               <div className="min-w-[690px]" style={{ width: `${Math.max(100, zoom * 100)}%` }}>
                 <div className="mb-2 ml-[94px] flex justify-between mono text-[9px] text-muted-foreground"><span>00:00</span><span>00:08</span><span>00:16</span><span>00:24</span><span>00:32</span></div>
                 <div className="relative space-y-2">
-                  <div className="pointer-events-none absolute bottom-0 top-[-21px] z-10 w-px bg-primary shadow-[0_0_12px_rgba(239,182,87,.7)]" style={{ left: `calc(94px + (100% - 94px) * ${time / 34})` }}><span className="absolute -left-1.5 -top-1.5 h-3 w-3 rotate-45 bg-primary" /></div>
+                  <div className="pointer-events-none absolute bottom-0 top-[-21px] z-10 w-px bg-primary shadow-[0_0_12px_hsl(var(--primary)/.6)]" style={{ left: `calc(94px + (100% - 94px) * ${time / 34})` }}><span className="absolute -left-1.5 -top-1.5 h-3 w-3 rotate-45 bg-primary" /></div>
                   <TrackRow label="V1" icon={<Film size={12} />} color="text-primary" muted={mutedTracks.includes("V1")} onToggleMute={() => toggleTrack("V1")}>
                     <div className="flex min-w-0 flex-1 gap-1">
                       {clips.map((clip) => (
                         <button key={clip.id} onClick={() => setSelectedClip(clip.id)} data-testid={`button-select-clip-${clip.id}`} style={{ width: `${clip.width}%` }} className={`relative h-[52px] shrink-0 overflow-hidden rounded border text-left transition-all ${selectedClip === clip.id ? "border-primary ring-1 ring-primary/40" : "border-border/70 hover:border-primary/50"}`}>
                           <div className={`absolute inset-0 bg-gradient-to-r ${clip.tone}`} />
-                          <span className="relative block truncate px-2 pt-2 text-[10px] font-bold text-[#eee7d8]">{clip.label}</span>
-                          <span className="relative block px-2 pt-1 text-[9px] text-[#c3bdaa]/80">{clip.state === "revised" ? "revised · " : ""}{clip.sub}</span>
+                          <span className="relative block truncate px-2 pt-2 text-[10px] font-bold text-foreground">{clip.label}</span>
+                          <span className="relative block px-2 pt-1 text-[9px] text-muted-foreground/80">{clip.state === "revised" ? "revised · " : ""}{clip.sub}</span>
                           <span className="absolute bottom-1 left-2 right-2 flex gap-0.5 opacity-40">{[1, 2, 3, 4, 5, 6, 7, 8].map((bar) => <i key={bar} className="h-1 flex-1 rounded-full bg-primary" style={{ opacity: bar % 3 === 0 ? 0.35 : 0.75 }} />)}</span>
                         </button>
                       ))}
@@ -1034,16 +1034,16 @@ function EditorWorkspace(props: EditorProps) {
                       <span className="mono text-[8px] text-accent/80">voiceover / night-signal.wav</span>
                     </div>
                   </TrackRow>
-                  <TrackRow label="T1" icon={<Captions size={12} />} color="text-[#bfa8eb]" muted={mutedTracks.includes("T1")} onToggleMute={() => toggleTrack("T1")}>
-                    <div className="h-7 w-[62%] rounded border border-[#bfa8eb]/20 bg-[#8e68be]/15 px-3 py-1.5 text-[9px] text-[#c8b9df]">captions · English (US)</div>
-                    <div className="h-7 w-[24%] rounded border border-[#bfa8eb]/20 bg-[#8e68be]/10 px-3 py-1.5 text-[9px] text-[#c8b9df]/70">end card</div>
+                  <TrackRow label="T1" icon={<Captions size={12} />} color="text-accent" muted={mutedTracks.includes("T1")} onToggleMute={() => toggleTrack("T1")}>
+                    <div className="h-7 w-[62%] rounded border border-border/20 bg-accent/15 px-3 py-1.5 text-[9px] text-muted-foreground">captions · English (US)</div>
+                    <div className="h-7 w-[24%] rounded border border-border/20 bg-accent/10 px-3 py-1.5 text-[9px] text-muted-foreground/70">end card</div>
                   </TrackRow>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="grid gap-5 border-b border-border bg-[#0e1015] p-4 sm:grid-cols-[1fr_1fr] sm:p-6">
+          <div className="grid gap-5 border-b border-border bg-background p-4 sm:grid-cols-[1fr_1fr] sm:p-6">
             <div>
               <div className="mb-3 flex items-center gap-2"><WandSparkles size={15} className="text-primary" /><h2 className="text-xs font-bold uppercase tracking-[.13em]">Revise with the agent</h2></div>
               <textarea value={revision} onChange={(event) => setRevision(event.target.value)} data-testid="input-shot-revision" className="min-h-[86px] w-full resize-none rounded-md border border-border bg-card p-3 text-xs leading-5 text-foreground outline-none focus:border-primary/60" />
@@ -1058,7 +1058,7 @@ function EditorWorkspace(props: EditorProps) {
         </div>
 
         {inspectorOpen && (
-          <aside className="border-t border-border bg-[#12151a] xl:border-l xl:border-t-0">
+          <aside className="border-t border-border bg-card xl:border-l xl:border-t-0">
             <div className="flex items-center justify-between border-b border-border px-4 py-3"><div><p className="mono text-[9px] uppercase tracking-[.17em] text-primary">Inspector</p><p className="mt-1 text-xs font-bold">{safeClip?.label.split("  —  ")[1]}</p></div><button onClick={() => setInspectorOpen(false)} data-testid="button-close-inspector" className="text-muted-foreground hover:text-foreground"><X size={16} /></button></div>
             <div className="space-y-5 p-4">
               <InspectorSection title="Transform" icon={<Aperture size={14} />}>
@@ -1084,7 +1084,7 @@ function EditorWorkspace(props: EditorProps) {
         )}
       </div>
 
-      <div className="border-t border-border bg-[#101217] p-4 sm:p-6">
+      <div className="border-t border-border bg-background p-4 sm:p-6">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div><p className="mono text-[9px] uppercase tracking-[.18em] text-accent">Media library</p><h2 className="mt-1 text-sm font-bold">The material bin</h2></div>
           <div className="flex items-center gap-2">
@@ -1102,9 +1102,9 @@ function EditorWorkspace(props: EditorProps) {
               <button key={item.id} onClick={() => addMediaToTimeline(item)} data-testid={`button-add-media-${item.id}`} className="group overflow-hidden rounded-md border border-border bg-card text-left transition-all hover:-translate-y-0.5 hover:border-primary/50">
                 <div className={`relative aspect-[1.65] bg-gradient-to-br ${item.color}`}>
                   <div className="absolute inset-0 opacity-25" style={{ background: "radial-gradient(circle at 70% 35%, #f5c578, transparent 24%)" }} />
-                  <span className="absolute left-2 top-2 rounded bg-[#0b0d12]/65 px-1.5 py-1 mono text-[9px] font-medium text-[#e8ddc7]">{item.glyph}</span>
-                  <span className="absolute bottom-2 right-2 rounded bg-[#0b0d12]/65 px-1.5 py-1 text-[8px] uppercase tracking-wider text-[#e8ddc7]">{item.type}</span>
-                  <span className="absolute inset-0 grid place-items-center bg-[#0b0d12]/35 opacity-0 transition-opacity group-hover:opacity-100"><Plus size={22} className="text-primary" /></span>
+                  <span className="absolute left-2 top-2 rounded bg-background/65 px-1.5 py-1 mono text-[9px] font-medium text-foreground">{item.glyph}</span>
+                  <span className="absolute bottom-2 right-2 rounded bg-background/65 px-1.5 py-1 text-[8px] uppercase tracking-wider text-foreground">{item.type}</span>
+                  <span className="absolute inset-0 grid place-items-center bg-background/35 opacity-0 transition-opacity group-hover:opacity-100"><Plus size={22} className="text-primary" /></span>
                 </div>
                 <p className="truncate px-2.5 py-2 text-[10px] text-muted-foreground">{item.name}</p>
               </button>
@@ -1114,8 +1114,8 @@ function EditorWorkspace(props: EditorProps) {
       </div>
 
       {(exporting || exported) && (
-        <div className="fixed inset-0 z-40 grid place-items-center bg-[#080a0e]/75 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-xl border border-border bg-[#171a20] p-6 shadow-2xl">
+        <div className="fixed inset-0 z-40 grid place-items-center bg-background/75 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-xl border border-border bg-popover p-6 shadow-2xl">
             <div className="mb-5 flex items-start justify-between">
               <div><p className="mono text-[9px] uppercase tracking-[.18em] text-primary">Final delivery</p><h2 className="mt-2 text-xl font-bold">{exported ? "Your film is ready." : "Rendering your film…"}</h2></div>
               {exported ? <div className="grid h-9 w-9 place-items-center rounded-full bg-accent/15 text-accent"><Check size={18} /></div> : <Film size={20} className="animate-pulse text-primary" />}
@@ -1170,7 +1170,7 @@ function RangeControl({ label, value, setValue, min, max, suffix, testId }: { la
   return (
     <label className="block border-b border-border/70 py-2.5 last:border-b-0">
       <span className="mb-2 flex justify-between text-xs"><span className="text-muted-foreground">{label}</span><span className="mono text-[10px] text-foreground">{value}{suffix}</span></span>
-      <input type="range" min={min} max={max} value={value} onChange={(event) => setValue(Number(event.target.value))} data-testid={testId} className="h-1.5 w-full accent-[#efb657]" />
+      <input type="range" min={min} max={max} value={value} onChange={(event) => setValue(Number(event.target.value))} data-testid={testId} className="h-1.5 w-full accent-[hsl(var(--primary))]" />
     </label>
   );
 }

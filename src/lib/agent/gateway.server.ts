@@ -1,4 +1,4 @@
-/** Lovable AI Gateway server helpers: director chat, image render, video render. */
+/** AI provider helpers: director chat, image render, video render (Lovable AI + ModelArk). */
 
 const BASE = "https://ai.gateway.lovable.dev/v1";
 
@@ -42,7 +42,7 @@ const DIRECTOR_SYSTEM = `You are Aurora's AI video director. You are a conversat
 
 Rules:
 - Never start producing from a vague request. Read the user's brief, restate what you understood in one or two sentences, and ask at most three sharp clarifying questions when anything essential is missing (subject, audience, length, format/aspect, tone, must-have shots, brand or character constraints).
-- Respect the project memory, locks and constraints you are given. Never contradict them.
+- Respect the project memory, locks and constraints you are given. Never contradict them. If the project memory is empty, this is a brand new project with no history — never invent or reuse people, brands or storylines from anywhere else.
 - Set readyToCreate true ONLY when the brief is concrete enough to shoot: subject, tone, length and format are known, or the user explicitly tells you to just go.
 - When readyToCreate is true, write "brief" as a tight production brief and return 3 to 6 shots. Each shot needs a cinematic imagePrompt (single still frame, camera, lens, light) and a videoPrompt (motion, camera move, action) in plain descriptive language.
 - When readyToCreate is false, return an empty shots array and put your questions in "questions".
@@ -80,7 +80,7 @@ export async function directorTurn(args: {
   memory: string;
 }): Promise<DirectorTurn> {
   const input = [
-    { role: "developer" as const, content: [{ type: "input_text" as const, text: `${DIRECTOR_SYSTEM}\n\nPROJECT MEMORY:\n${args.memory || "(empty)"}` }] },
+    { role: "developer" as const, content: [{ type: "input_text" as const, text: `${DIRECTOR_SYSTEM}\n\nPROJECT MEMORY:\n${args.memory || "(empty — brand new project)"}` }] },
     ...args.messages.map((m) => ({
       role: m.role,
       content: [{ type: m.role === "assistant" ? ("output_text" as const) : ("input_text" as const), text: m.text }],
@@ -142,12 +142,20 @@ export async function directorTurn(args: {
   }
 }
 
-export async function renderImage(prompt: string): Promise<string> {
+/* ------------------------------ images ------------------------------ */
+
+/** Returns a data URL (Lovable AI) or a remote URL (ModelArk). */
+export async function renderImage(prompt: string, model: string): Promise<string> {
+  if (model.startsWith("ark:")) {
+    const { generateModelArkImage } = await import("./modelark.server");
+    return generateModelArkImage({ prompt, model: model.slice(4) });
+  }
+
   const r = await fetch(`${BASE}/images/generations`, {
     method: "POST",
     headers: headers(),
     body: JSON.stringify({
-      model: "google/gemini-3-pro-image",
+      model,
       messages: [{ role: "user", content: prompt }],
       modalities: ["image", "text"],
     }),
@@ -160,20 +168,54 @@ export async function renderImage(prompt: string): Promise<string> {
   throw new Error("Image generation returned no image.");
 }
 
+/* ------------------------------ video ------------------------------ */
+
 export type VideoJob = { id: string; status: string; progress: number };
 
-export async function createVideo(prompt: string, model = "google/veo-3.1-fast"): Promise<VideoJob> {
+function videoBody(prompt: string, model: string, seconds: number) {
+  if (model === "google/gemini-omni-1.1-flash") {
+    const duration = Math.max(3, Math.min(10, Math.round(seconds)));
+    return {
+      model,
+      input: prompt,
+      response_format: { type: "video", resolution: "720p", duration: `${duration}s`, aspect_ratio: "16:9" },
+    };
+  }
+  return {
+    model,
+    instances: [{ prompt }],
+    parameters: {
+      durationSeconds: [4, 6, 8].includes(Math.round(seconds)) ? Math.round(seconds) : 8,
+      resolution: "720p",
+      aspectRatio: "16:9",
+      sampleCount: 1,
+      generateAudio: true,
+    },
+  };
+}
+
+export async function createVideo(prompt: string, model: string, seconds = 8): Promise<VideoJob> {
+  if (model.startsWith("ark:")) {
+    const { createModelArkVideoTask } = await import("./modelark.server");
+    const id = await createModelArkVideoTask({ prompt, model: model.slice(4), duration: seconds });
+    return { id: `ark:${id}`, status: "in_progress", progress: 0 };
+  }
   const r = await fetch(`${BASE}/videos`, {
     method: "POST",
     headers: headers(),
-    body: JSON.stringify({ model, prompt }),
+    body: JSON.stringify(videoBody(prompt, model, seconds)),
   });
   if (!r.ok) return fail(r, "Video generation");
   const j = (await r.json()) as VideoJob;
   return { id: j.id, status: j.status, progress: j.progress ?? 0 };
 }
 
-export async function getVideo(id: string): Promise<VideoJob & { error?: string }> {
+export async function getVideo(id: string): Promise<VideoJob & { error?: string; url?: string }> {
+  if (id.startsWith("ark:")) {
+    const { getModelArkVideoTask } = await import("./modelark.server");
+    const task = await getModelArkVideoTask(id.slice(4));
+    return { id, status: task.status, progress: task.progress, ...(task.error ? { error: task.error } : {}), ...(task.url ? { url: task.url } : {}) };
+  }
   const r = await fetch(`${BASE}/videos/${encodeURIComponent(id)}`, { headers: headers() });
   if (!r.ok) return fail(r, "Video status");
   const j = (await r.json()) as VideoJob & { error?: { message?: string } | string };

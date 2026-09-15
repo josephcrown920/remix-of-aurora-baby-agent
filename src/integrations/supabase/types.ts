@@ -458,6 +458,142 @@ export type Database = {
           },
         ]
       }
+      studio_messages: {
+        Row: {
+          created_at: string
+          id: string
+          meta: string | null
+          project_id: string
+          role: string
+          text: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          meta?: string | null
+          project_id: string
+          role: string
+          text: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          meta?: string | null
+          project_id?: string
+          role?: string
+          text?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "studio_messages_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "studio_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      studio_projects: {
+        Row: {
+          brief: string
+          created_at: string
+          id: string
+          image_model: string
+          owner_key: string
+          project_type: string
+          rules: string
+          title: string
+          updated_at: string
+          video_model: string
+          world: Json
+        }
+        Insert: {
+          brief?: string
+          created_at?: string
+          id?: string
+          image_model?: string
+          owner_key: string
+          project_type?: string
+          rules?: string
+          title?: string
+          updated_at?: string
+          video_model?: string
+          world?: Json
+        }
+        Update: {
+          brief?: string
+          created_at?: string
+          id?: string
+          image_model?: string
+          owner_key?: string
+          project_type?: string
+          rules?: string
+          title?: string
+          updated_at?: string
+          video_model?: string
+          world?: Json
+        }
+        Relationships: []
+      }
+      studio_shots: {
+        Row: {
+          created_at: string
+          duration_seconds: number
+          id: string
+          image_prompt: string
+          image_url: string | null
+          position: number
+          project_id: string
+          summary: string
+          title: string
+          tone: string
+          updated_at: string
+          video_prompt: string
+          video_url: string | null
+        }
+        Insert: {
+          created_at?: string
+          duration_seconds?: number
+          id?: string
+          image_prompt?: string
+          image_url?: string | null
+          position?: number
+          project_id: string
+          summary?: string
+          title?: string
+          tone?: string
+          updated_at?: string
+          video_prompt?: string
+          video_url?: string | null
+        }
+        Update: {
+          created_at?: string
+          duration_seconds?: number
+          id?: string
+          image_prompt?: string
+          image_url?: string | null
+          position?: number
+          project_id?: string
+          summary?: string
+          title?: string
+          tone?: string
+          updated_at?: string
+          video_prompt?: string
+          video_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "studio_shots_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "studio_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

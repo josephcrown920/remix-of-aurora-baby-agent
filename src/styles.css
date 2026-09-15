@@ -1,0 +1,177 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+@plugin "@tailwindcss/typography";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Aurora Baby Video Agent — Design System
+ *
+ * Dark cinema theme: Manrope (sans), DM Mono (mono), Playfair Display (serif).
+ * HSL-based semantic tokens mapped to Tailwind utilities.
+ * Warm amber primary, teal accent, deep blue-black backgrounds.
+ */
+
+@theme inline {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-card-border: hsl(var(--card-border));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-popover-border: hsl(var(--popover-border));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-sidebar: hsl(var(--sidebar));
+  --color-sidebar-foreground: hsl(var(--sidebar-foreground));
+  --color-sidebar-border: hsl(var(--sidebar-border));
+  --color-sidebar-primary: hsl(var(--sidebar-primary));
+  --color-sidebar-primary-foreground: hsl(var(--sidebar-primary-foreground));
+  --color-sidebar-accent: hsl(var(--sidebar-accent));
+  --color-sidebar-accent-foreground: hsl(var(--sidebar-accent-foreground));
+  --font-sans: var(--app-font-sans);
+  --font-mono: var(--app-font-mono);
+  --font-serif: var(--app-font-serif);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+:root {
+  --background: 225 18% 8%;
+  --foreground: 42 18% 92%;
+  --border: 225 13% 20%;
+  --input: 225 13% 20%;
+  --ring: 38 96% 63%;
+  --card: 225 17% 11%;
+  --card-foreground: 42 18% 92%;
+  --card-border: 225 14% 19%;
+  --sidebar: 225 20% 7%;
+  --sidebar-foreground: 225 11% 68%;
+  --sidebar-border: 225 13% 16%;
+  --sidebar-primary: 39 96% 65%;
+  --sidebar-primary-foreground: 225 20% 7%;
+  --sidebar-accent: 225 15% 14%;
+  --sidebar-accent-foreground: 42 18% 92%;
+  --popover: 225 17% 12%;
+  --popover-foreground: 42 18% 92%;
+  --primary: 39 96% 65%;
+  --primary-foreground: 225 20% 7%;
+  --secondary: 225 15% 15%;
+  --secondary-foreground: 225 15% 83%;
+  --muted: 225 14% 14%;
+  --muted-foreground: 225 10% 56%;
+  --accent: 184 72% 63%;
+  --accent-foreground: 225 20% 7%;
+  --destructive: 3 76% 62%;
+  --destructive-foreground: 225 20% 7%;
+  --app-font-sans: 'Manrope', sans-serif;
+  --app-font-serif: 'Playfair Display', serif;
+  --app-font-mono: 'DM Mono', monospace;
+  --radius: 0.65rem;
+  --shadow-sm: 0 8px 22px rgba(0, 0, 0, 0.22);
+  --shadow-md: 0 16px 38px rgba(0, 0, 0, 0.28);
+  --tracking-normal: 0em;
+  --spacing: 0.25rem;
+}
+
+.dark {
+  --background: 225 18% 8%;
+  --foreground: 42 18% 92%;
+  --border: 225 13% 20%;
+  --input: 225 13% 20%;
+  --ring: 38 96% 63%;
+  --card: 225 17% 11%;
+  --card-foreground: 42 18% 92%;
+  --card-border: 225 14% 19%;
+  --sidebar: 225 20% 7%;
+  --sidebar-foreground: 225 11% 68%;
+  --sidebar-border: 225 13% 16%;
+  --sidebar-primary: 39 96% 65%;
+  --sidebar-primary-foreground: 225 20% 7%;
+  --sidebar-accent: 225 15% 14%;
+  --sidebar-accent-foreground: 42 18% 92%;
+  --popover: 225 17% 12%;
+  --popover-foreground: 42 18% 92%;
+  --primary: 39 96% 65%;
+  --primary-foreground: 225 20% 7%;
+  --secondary: 225 15% 15%;
+  --secondary-foreground: 225 15% 83%;
+  --muted: 225 14% 14%;
+  --muted-foreground: 225 10% 56%;
+  --accent: 184 72% 63%;
+  --accent-foreground: 225 20% 7%;
+  --destructive: 3 76% 62%;
+  --destructive-foreground: 225 20% 7%;
+}
+
+@layer base {
+  * { border-color: var(--color-border); }
+  body { font-family: var(--app-font-sans); -webkit-font-smoothing: antialiased; background-color: var(--color-background); color: var(--color-foreground); margin: 0; }
+  button, input, textarea { font: inherit; }
+  button { cursor: pointer; }
+}
+
+@keyframes filmReveal {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes pulseDot {
+  0%, 100% { opacity: .42; transform: scale(.85); }
+  50% { opacity: 1; transform: scale(1); }
+}
+@keyframes progressSweep {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(100%); }
+}
+
+.film-shell {
+  min-height: 100dvh;
+  background:
+    radial-gradient(circle at 76% -15%, rgba(215, 160, 75, .11), transparent 32rem),
+    radial-gradient(circle at 10% 70%, rgba(47, 139, 145, .08), transparent 28rem),
+    hsl(var(--background));
+}
+.film-grain::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: .035;
+  z-index: 20;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 160 160' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.45'/%3E%3C/svg%3E");
+}
+.reveal { animation: filmReveal .55s ease-out both; }
+.reveal-delay-1 { animation-delay: .08s; }
+.reveal-delay-2 { animation-delay: .16s; }
+.reveal-delay-3 { animation-delay: .24s; }
+.reveal-delay-4 { animation-delay: .32s; }
+.mono { font-family: var(--app-font-mono); }
+.scrollbar-thin::-webkit-scrollbar { width: 5px; height: 5px; }
+.scrollbar-thin::-webkit-scrollbar-thumb { background: hsl(var(--border)); border-radius: 99px; }
+.timeline-grid {
+  background-image: linear-gradient(to right, rgba(220, 210, 186, .075) 1px, transparent 1px);
+  background-size: 64px 100%;
+}
+.timeline-grid-lg {
+  background-image: linear-gradient(to right, rgba(220, 210, 186, .09) 1px, transparent 1px), linear-gradient(to bottom, rgba(220, 210, 186, .035) 1px, transparent 1px);
+  background-size: 96px 100%, 100% 42px;
+}
+@media (max-width: 767px) {
+  .mobile-scroll { overflow-x: auto; }
+  .mobile-scroll > * { min-width: 630px; }
+}

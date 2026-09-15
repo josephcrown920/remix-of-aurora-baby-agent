@@ -1,0 +1,90 @@
+{
+  "source": "replit",
+  "repo": "Aurora-Baby-Video-Agent",
+  "capabilities": [
+    {
+      "capability": "Frontend UI — video editor workspace (home/agent/edit modes)",
+      "source": "artifacts/video-editor/src/App.tsx",
+      "outcome": "Port as single-page TanStack Start route with mode switching preserved",
+      "status": "pending",
+      "next_action": "Port App.tsx to src/routes/index.tsx with component split"
+    },
+    {
+      "capability": "Design system — dark cinema theme (Manrope, DM Mono, Playfair Display, HSL tokens)",
+      "source": "artifacts/video-editor/src/index.css",
+      "outcome": "Port to src/styles.css with font links in __root.tsx head",
+      "status": "pending",
+      "next_action": "Port CSS, move font imports to link tags"
+    },
+    {
+      "capability": "Backend — Express API server (agent streaming, capabilities, health)",
+      "source": "artifacts/api-server/src/",
+      "outcome": "Convert to TanStack server functions + server route for SSE streaming",
+      "status": "pending",
+      "next_action": "Create server functions and /api/agent/stream route"
+    },
+    {
+      "capability": "Agent core — ModelArk integration (SSE text, Seedream image, Seedance video)",
+      "source": "agent-core/modelark.ts",
+      "outcome": "Port as server-side module, calls external API (edge-safe via fetch)",
+      "status": "pending",
+      "next_action": "Port to src/lib/agent/modelark.server.ts"
+    },
+    {
+      "capability": "Agent core — production routing, scoring, presets, skills",
+      "source": "agent-core/production.ts, video-agent-presets.ts, video-agent-skills.ts, video-workflow-registry.ts",
+      "outcome": "Port as server-side modules",
+      "status": "pending",
+      "next_action": "Port to src/lib/agent/"
+    },
+    {
+      "capability": "Project memory — types, retrieval, context building, prompt assembly",
+      "source": "project-memory/core.ts",
+      "outcome": "Port as shared types + server-side logic",
+      "status": "pending",
+      "next_action": "Port to src/lib/agent/memory.ts"
+    },
+    {
+      "capability": "Production orchestrator — intent detection, capability inference, provider routing, SSE events",
+      "source": "artifacts/api-server/src/lib/production-orchestrator.ts",
+      "outcome": "Port as server-side module",
+      "status": "pending",
+      "next_action": "Port to src/lib/agent/orchestrator.server.ts"
+    },
+    {
+      "capability": "Database — PostgreSQL via Drizzle ORM (10 tables for project memory)",
+      "source": "lib/db/src/schema/project-memory.ts",
+      "outcome": "Convert Drizzle schema to Supabase SQL migration via Lovable Cloud",
+      "status": "pending",
+      "next_action": "Enable Lovable Cloud, create SQL migration"
+    },
+    {
+      "capability": "Auth — none in original (single-user tool)",
+      "source": "n/a",
+      "outcome": "No auth required, keep as open tool",
+      "status": "implemented",
+      "next_action": "none"
+    },
+    {
+      "capability": "Records — no export attached",
+      "source": "n/a",
+      "outcome": "Build schema without records, request after preview",
+      "status": "pending",
+      "next_action": "Request CSV/JSON exports after preview"
+    },
+    {
+      "capability": "Secrets — ARK_API_KEY, MODELARK_*_MODEL, FAL_KEY, REPLICATE_API_TOKEN, VAST_API_KEY",
+      "source": "environment_variables",
+      "outcome": "Preserve providers, request keys via secure secret form before verification",
+      "status": "pending",
+      "next_action": "Request secrets after build"
+    },
+    {
+      "capability": "Replit platform metadata (REPL_ID, BASE_PATH, PORT, DEV, BASE_URL)",
+      "source": "environment_variables",
+      "outcome": "Drop — Replit runtime config, not user-owned",
+      "status": "implemented",
+      "next_action": "none"
+    }
+  ]
+}

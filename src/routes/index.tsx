@@ -10,6 +10,8 @@ import {
 } from "lucide-react";
 
 import { checkVideo, directorChat, generateImage, startVideo } from "@/lib/agent/agent.functions";
+import { DEFAULT_IMAGE_MODEL, DEFAULT_VIDEO_MODEL, IMAGE_MODELS, VIDEO_MODELS } from "@/lib/agent/models";
+import { loadStudio, saveStudioMessage, saveStudioSettings, saveStudioShots } from "@/lib/studio/studio.functions";
 
 export const Route = createFileRoute("/")({
   component: AuroraWorkspace,
@@ -121,10 +123,71 @@ function AuroraWorkspace() {
   const [futureClips, setFutureClips] = useState<Clip[][]>([]);
   const [renders, setRenders] = useState<Renders>({});
   const [shotPrompts, setShotPrompts] = useState<Record<string, { image: string; video: string }>>({});
+  const [projectId, setProjectId] = useState("");
+  const [title, setTitle] = useState("Baby 1");
+  const [brief, setBrief] = useState("");
+  const [world, setWorld] = useState<{ title: string; detail: string; tag: string }[]>([]);
+  const [imageModel, setImageModel] = useState(DEFAULT_IMAGE_MODEL);
+  const [videoModel, setVideoModel] = useState(DEFAULT_VIDEO_MODEL);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const activeClip = useMemo(() => clips.find((clip) => clip.id === selectedClip) ?? clips[0], [clips, selectedClip]);
   const filteredMedia = useMemo(() => media.filter((item) => item.name.toLowerCase().includes(mediaSearch.toLowerCase())), [media, mediaSearch]);
+
+  /** Loads this browser's saved workspace (projects, chat and shots) once on mount. */
+  useEffect(() => {
+    let key = window.localStorage.getItem("baby-owner-key");
+    if (!key) {
+      key = crypto.randomUUID();
+      window.localStorage.setItem("baby-owner-key", key);
+    }
+    let cancelled = false;
+    void loadStudio({ data: { ownerKey: key } })
+      .then((project) => {
+        if (cancelled) return;
+        setProjectId(project.id);
+        setTitle(project.title || "Baby 1");
+        setBrief(project.brief || "");
+        setRules(project.rules || "");
+        setWorld(project.world ?? []);
+        setActiveProjectTab(project.projectType || "Film");
+        setImageModel(project.imageModel || DEFAULT_IMAGE_MODEL);
+        setVideoModel(project.videoModel || DEFAULT_VIDEO_MODEL);
+        if (project.messages.length) {
+          setMessages(project.messages.map((message) => ({ id: message.id, role: message.role, text: message.text, meta: message.meta ?? undefined })));
+        }
+        if (project.shots.length) {
+          setClips(project.shots.map((shot, index) => ({
+            id: shot.id,
+            label: `${String(index + 1).padStart(2, "0")}  —  ${shot.title}`,
+            sub: `${Math.max(2, Math.round(shot.durationSeconds))}s · ${shot.summary.slice(0, 48)}`,
+            tone: TONES[index % TONES.length]!,
+            width: Math.max(10, Math.min(30, Math.round(shot.durationSeconds) * 3)),
+          })));
+          setSelectedClip(project.shots[0]!.id);
+          setShotPrompts(Object.fromEntries(project.shots.map((shot) => [shot.id, { image: shot.imagePrompt, video: shot.videoPrompt }])));
+          setRenders(Object.fromEntries(project.shots
+            .filter((shot) => shot.imageUrl || shot.videoUrl)
+            .map((shot) => [shot.id, {
+              status: "done" as const,
+              ...(shot.imageUrl ? { imageUrl: shot.imageUrl } : {}),
+              ...(shot.videoUrl ? { videoUrl: shot.videoUrl } : {}),
+            }])));
+        }
+      })
+      .catch(() => setToast("Your saved workspace could not be loaded."));
+    return () => { cancelled = true; };
+  }, []);
+
+  /** Persists project settings shortly after they stop changing. */
+  useEffect(() => {
+    if (!projectId) return;
+    const timer = window.setTimeout(() => {
+      void saveStudioSettings({ data: { projectId, title, brief, rules, projectType: activeProjectTab, imageModel, videoModel } }).catch(() => undefined);
+    }, 700);
+    return () => window.clearTimeout(timer);
+  }, [projectId, title, brief, rules, activeProjectTab, imageModel, videoModel]);
+
 
   useEffect(() => {
     if (!playing) return;

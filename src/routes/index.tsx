@@ -901,7 +901,7 @@ function FinalView({ clips, startExport, setMode, notify }: { clips: Clip[]; sta
             <p className="mt-1 text-lg font-bold">The One Hook</p>
             <p className="mt-1 text-[10px] text-muted-foreground">{clips.length} scenes · 00:34 · 16:9 cinematic</p>
           </div>
-          <button onClick={() => notify("Preview playback started.")} data-testid="button-final-preview" className="absolute inset-0 m-auto grid h-12 w-12 place-items-center rounded-full bg-white text-[#101217] shadow-xl transition-transform hover:scale-105"><Play size={20} fill="currentColor" /></button>
+          <button onClick={() => notify("Preview playback started.")} data-testid="button-final-preview" className="absolute inset-0 m-auto grid h-12 w-12 place-items-center rounded-full bg-white text-primary-foreground shadow-xl transition-transform hover:scale-105"><Play size={20} fill="currentColor" /></button>
         </div>
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3">
           <div className="flex items-center gap-2 text-[10px] text-muted-foreground"><Check size={13} className="text-accent" /> Voice, captions, music, and continuity checked</div>
@@ -1035,8 +1035,8 @@ function EditorWorkspace(props: EditorProps) {
                     </div>
                   </TrackRow>
                   <TrackRow label="T1" icon={<Captions size={12} />} color="text-accent" muted={mutedTracks.includes("T1")} onToggleMute={() => toggleTrack("T1")}>
-                    <div className="h-7 w-[62%] rounded border border-border/20 bg-[#8e68be]/15 px-3 py-1.5 text-[9px] text-muted-foreground">captions · English (US)</div>
-                    <div className="h-7 w-[24%] rounded border border-border/20 bg-[#8e68be]/10 px-3 py-1.5 text-[9px] text-muted-foreground/70">end card</div>
+                    <div className="h-7 w-[62%] rounded border border-border/20 bg-accent/15 px-3 py-1.5 text-[9px] text-muted-foreground">captions · English (US)</div>
+                    <div className="h-7 w-[24%] rounded border border-border/20 bg-accent/10 px-3 py-1.5 text-[9px] text-muted-foreground/70">end card</div>
                   </TrackRow>
                 </div>
               </div>

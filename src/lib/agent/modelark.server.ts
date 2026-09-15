@@ -102,6 +102,60 @@ export async function generateModelArkImage(a: {
   return u;
 }
 
+function seedanceFlags(a: { model?: string; duration?: number; resolution?: string; aspectRatio?: string }) {
+  const isSeedance25 = (a.model || "").startsWith(SEEDANCE_25_MODEL);
+  const duration = a.duration
+    ? isSeedance25
+      ? Math.max(4, Math.min(30, Math.round(a.duration)))
+      : Math.max(3, Math.min(12, Math.round(a.duration)))
+    : undefined;
+  return [
+    a.resolution && `--resolution ${a.resolution}`,
+    duration && `--duration ${duration}`,
+    `--aspect_ratio ${a.aspectRatio || "16:9"}`,
+  ].filter(Boolean).join(" ");
+}
+
+/** Creates a Seedance task and returns its id, without waiting for it to finish. */
+export async function createModelArkVideoTask(a: {
+  prompt: string;
+  model?: string;
+  imageUrl?: string;
+  duration?: number;
+  resolution?: "480p" | "720p" | "1080p";
+  aspectRatio?: string;
+}): Promise<string> {
+  const c = modelArkConfig();
+  const flags = seedanceFlags({ ...a, resolution: a.resolution || "720p" });
+  const content: any[] = [{ type: "text", text: `${a.prompt} ${flags}`.trim() }];
+  if (a.imageUrl) content.push({ type: "image_url", image_url: { url: a.imageUrl } });
+  const r = await fetch(`${c.baseUrl}/contents/generations/tasks`, {
+    method: "POST",
+    headers: auth(),
+    body: JSON.stringify({ model: a.model || c.videoModel, content }),
+  });
+  if (!r.ok) throw new Error(`ModelArk video create ${r.status}: ${(await r.text()).slice(0, 400)}`);
+  const j = await r.json() as any;
+  if (!j.id) throw new Error("ModelArk video create returned no task id");
+  return j.id as string;
+}
+
+/** Polls a Seedance task once and maps it to the shared job shape. */
+export async function getModelArkVideoTask(id: string): Promise<{ status: string; progress: number; url?: string; error?: string }> {
+  const c = modelArkConfig();
+  const r = await fetch(`${c.baseUrl}/contents/generations/tasks/${encodeURIComponent(id)}`, { headers: auth() });
+  if (!r.ok) {
+    if (r.status === 429 || r.status >= 500) return { status: "in_progress", progress: 0 };
+    throw new Error(`ModelArk video poll ${r.status}: ${(await r.text()).slice(0, 400)}`);
+  }
+  const j = await r.json() as any;
+  if (j.status === "succeeded") return { status: "completed", progress: 100, url: j.content?.video_url };
+  if (j.status === "failed" || j.status === "cancelled") {
+    return { status: "failed", progress: 0, error: typeof j.error === "string" ? j.error : j.error?.message || "The video provider could not finish this shot." };
+  }
+  return { status: "in_progress", progress: j.status === "running" ? 50 : 10 };
+}
+
 export async function generateModelArkVideo(a: {
   prompt: string;
   model?: string;

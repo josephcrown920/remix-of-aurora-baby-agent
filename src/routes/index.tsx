@@ -26,27 +26,17 @@ type Clip = { id: string; label: string; sub: string; tone: string; width: numbe
 type Media = { id: string; name: string; type: string; color: string; glyph: string };
 type AgentMessage = { id: string; role: MessageRole; text: string; meta?: string };
 
-const initialClips: Clip[] = [
-  { id: "shot-01", label: "01  —  The signal", sub: "00:00–00:06", tone: "from-[#5d3d2c] via-[#1f2630] to-[#10131b]", width: 18 },
-  { id: "shot-02", label: "02  —  A city that listens", sub: "00:06–00:13", tone: "from-[#183f47] via-[#162b35] to-[#11141d]", width: 23 },
-  { id: "shot-03", label: "03  —  Find your frequency", sub: "00:13–00:21", tone: "from-[#7a5130] via-[#362a35] to-[#11131b]", width: 27 },
-  { id: "shot-04", label: "04  —  Stay curious", sub: "00:21–00:28", tone: "from-[#1d3d42] via-[#293441] to-[#11131b]", width: 22 },
-  { id: "shot-05", label: "05  —  Make the next move", sub: "00:28–00:34", tone: "from-[#5e332b] via-[#202433] to-[#11131b]", width: 20 },
+const TONES = [
+  "from-[#5c1338] via-[#2a0f36] to-[#150720]",
+  "from-[#3a0f52] via-[#250c34] to-[#12061c]",
+  "from-[#7a1236] via-[#340f3d] to-[#150720]",
+  "from-[#4b1050] via-[#2c0d38] to-[#120620]",
+  "from-[#6a0f2c] via-[#2f0d36] to-[#140620]",
 ];
 
-const initialMedia: Media[] = [
-  { id: "m1", name: "signal-dawn.mp4", type: "VIDEO", color: "from-[#704328] to-[#16212c]", glyph: "01" },
-  { id: "m2", name: "city-listens.mp4", type: "VIDEO", color: "from-[#184854] to-[#141b2a]", glyph: "02" },
-  { id: "m3", name: "frequency-close.mp4", type: "VIDEO", color: "from-[#8e5f37] to-[#292538]", glyph: "03" },
-  { id: "m4", name: "grain-overlay.mov", type: "OVERLAY", color: "from-[#3b3431] to-[#11131b]", glyph: "FX" },
-  { id: "m5", name: "ambient-aurora.wav", type: "AUDIO", color: "from-[#15535b] to-[#121927]", glyph: "♪" },
-  { id: "m6", name: "title-card.png", type: "IMAGE", color: "from-[#5f4a30] to-[#202232]", glyph: "T" },
-];
+const initialClips: Clip[] = [];
 
-const contextSections = [
-  { title: "Josh", detail: "NBA Josh — the artist. Red-tipped dreads, dark brown eyes, calm fearless face.", tag: "CHARACTER" },
-  { title: "Wet night street", detail: "Dark urban street at night, rain-slicked blacktop, overhead streetlights, red and blue police flashers.", tag: "LOCATION" },
-];
+const initialMedia: Media[] = [];
 
 const workflowOptions = [
   { label: "Start from an idea", detail: "Brief → script → first cut" },
@@ -56,20 +46,19 @@ const workflowOptions = [
 
 const projectTabs = ["Film", "Promo", "Performance Ad", "Product Ad", "Microdrama"];
 
-const defaultPrompt =
-  "Create a 35-second launch film for a new kind of city guide. Make it feel like the city is speaking directly to one curious person — tactile, nocturnal, quietly optimistic.";
+const defaultPrompt = "";
 
-const defaultRevision =
-  "Make shot 03 feel more intimate. Bring the camera closer, deepen the amber light, and keep the voiceover exactly as it is.";
+const defaultRevision = "";
 
 const initialMessages: AgentMessage[] = [
   {
     id: "agent-intro",
     role: "agent",
-    text: "I'm your video director. Tell me what you want to make — the idea, who it's for, and roughly how long. I'll ask a couple of questions before I create anything.",
+    text: "I'm Baby, your video director. Tell me what you want to make — the idea, who it's for, and roughly how long. I'll ask a couple of questions before I create anything.",
     meta: "ready",
   },
 ];
+
 
 function formatTime(value: number) {
   const minutes = Math.floor(value / 60);

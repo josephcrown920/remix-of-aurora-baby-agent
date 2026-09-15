@@ -901,7 +901,7 @@ function FinalView({ clips, startExport, setMode, notify }: { clips: Clip[]; sta
             <p className="mt-1 text-lg font-bold">The One Hook</p>
             <p className="mt-1 text-[10px] text-muted-foreground">{clips.length} scenes · 00:34 · 16:9 cinematic</p>
           </div>
-          <button onClick={() => notify("Preview playback started.")} data-testid="button-final-preview" className="absolute inset-0 m-auto grid h-12 w-12 place-items-center rounded-full bg-white text-primary-foreground shadow-xl transition-transform hover:scale-105"><Play size={20} fill="currentColor" /></button>
+          <button onClick={() => notify("Preview playback started.")} data-testid="button-final-preview" className="absolute inset-0 m-auto grid h-12 w-12 place-items-center rounded-full bg-primary text-primary-foreground shadow-xl transition-transform hover:scale-105"><Play size={20} fill="currentColor" /></button>
         </div>
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3">
           <div className="flex items-center gap-2 text-[10px] text-muted-foreground"><Check size={13} className="text-accent" /> Voice, captions, music, and continuity checked</div>

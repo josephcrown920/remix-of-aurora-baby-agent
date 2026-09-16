@@ -266,10 +266,12 @@ function AuroraWorkspace() {
     setAgentRunning(true);
     setAgentStage(1);
     setWorkflowOpen(false);
+    if (projectId) void saveStudioMessage({ data: { projectId, role: "user", text: value } }).catch(() => undefined);
 
     const memory = [
       rules.trim() && `RULES:\n${rules.trim()}`,
-      contextSections.map((section) => `${section.tag} — ${section.title}: ${section.detail}`).join("\n"),
+      brief.trim() && `BRIEF:\n${brief.trim()}`,
+      world.map((section) => `${section.tag} — ${section.title}: ${section.detail}`).join("\n"),
       `PROJECT TYPE: ${activeProjectTab}`,
     ].filter(Boolean).join("\n\n");
 
@@ -281,27 +283,56 @@ function AuroraWorkspace() {
         },
       });
 
-      setMessages((current) => [
-        ...current,
-        {
-          id: `agent-${Date.now()}`,
-          role: "agent",
-          text: [turn.reply, ...(turn.readyToCreate ? [] : turn.questions.map((question) => `• ${question}`))].join("\n"),
-          meta: turn.readyToCreate ? "shot list ready" : "gathering the brief",
-        },
-      ]);
+      const replyText = [turn.reply, ...(turn.readyToCreate ? [] : turn.questions.map((question) => `• ${question}`))].join("\n");
+      const replyMeta = turn.readyToCreate ? "shot list ready" : "gathering the brief";
+      setMessages((current) => [...current, { id: `agent-${Date.now()}`, role: "agent", text: replyText, meta: replyMeta }]);
+      if (projectId) void saveStudioMessage({ data: { projectId, role: "agent", text: replyText, meta: replyMeta } }).catch(() => undefined);
+      if (turn.brief) setBrief(turn.brief);
 
       if (turn.readyToCreate && turn.shots.length) {
-        const nextClips: Clip[] = turn.shots.map((shot, index) => ({
+        let saved = turn.shots.map((shot, index) => ({
           id: `shot-${String(index + 1).padStart(2, "0")}`,
+          title: shot.title,
+          summary: shot.description,
+          durationSeconds: shot.durationSeconds,
+          imagePrompt: shot.imagePrompt,
+          videoPrompt: shot.videoPrompt,
+        }));
+        if (projectId) {
+          const rows = await saveStudioShots({
+            data: {
+              projectId,
+              shots: saved.map((shot, index) => ({
+                position: index,
+                title: shot.title,
+                summary: shot.summary,
+                durationSeconds: shot.durationSeconds,
+                imagePrompt: shot.imagePrompt,
+                videoPrompt: shot.videoPrompt,
+              })),
+            },
+          }).catch(() => null);
+          if (rows?.length) {
+            saved = rows.map((row) => ({
+              id: row.id,
+              title: row.title,
+              summary: row.summary,
+              durationSeconds: row.durationSeconds,
+              imagePrompt: row.imagePrompt,
+              videoPrompt: row.videoPrompt,
+            }));
+          }
+        }
+        const nextClips: Clip[] = saved.map((shot, index) => ({
+          id: shot.id,
           label: `${String(index + 1).padStart(2, "0")}  —  ${shot.title}`,
-          sub: `${Math.max(2, Math.round(shot.durationSeconds))}s · ${shot.description.slice(0, 48)}`,
-          tone: initialClips[index % initialClips.length]?.tone ?? initialClips[0]!.tone,
+          sub: `${Math.max(2, Math.round(shot.durationSeconds))}s · ${shot.summary.slice(0, 48)}`,
+          tone: TONES[index % TONES.length]!,
           width: Math.max(10, Math.min(30, Math.round(shot.durationSeconds) * 3)),
         }));
         setClipsWithHistory(nextClips);
         setSelectedClip(nextClips[0]?.id ?? "");
-        setShotPrompts(Object.fromEntries(turn.shots.map((shot, index) => [`shot-${String(index + 1).padStart(2, "0")}`, { image: shot.imagePrompt, video: shot.videoPrompt }])));
+        setShotPrompts(Object.fromEntries(saved.map((shot) => [shot.id, { image: shot.imagePrompt, video: shot.videoPrompt }])));
         setRenders({});
         setAgentTab("scenes");
         setAgentStage(4);
@@ -324,9 +355,9 @@ function AuroraWorkspace() {
     const promptText = shot?.image ?? `Cinematic still frame: ${clip?.label ?? ""} ${clip?.sub ?? ""}. ${prompt}`;
     setRenders((current) => ({ ...current, [clipId]: { ...current[clipId], status: "image" } }));
     try {
-      const { imageUrl } = await generateImage({ data: { prompt: promptText } });
+      const { imageUrl } = await generateImage({ data: { prompt: promptText, model: imageModel, ...(projectId ? { shotId: clipId } : {}) } });
       setRenders((current) => ({ ...current, [clipId]: { ...current[clipId], status: "done", imageUrl } }));
-      notify("Frame rendered.");
+      notify("Frame rendered and saved.");
     } catch (error) {
       setRenders((current) => ({ ...current, [clipId]: { ...current[clipId], status: "idle", error: error instanceof Error ? error.message : "Image render failed." } }));
     }
@@ -338,20 +369,22 @@ function AuroraWorkspace() {
     const promptText = shot?.video ?? `${clip?.label ?? ""}: ${clip?.sub ?? ""}. ${prompt}`;
     setRenders((current) => ({ ...current, [clipId]: { ...current[clipId], status: "video", progress: 0 } }));
     try {
-      const job = await startVideo({ data: { prompt: promptText } });
+      const job = await startVideo({ data: { prompt: promptText, model: videoModel } });
       let status = job.status;
       let guard = 0;
+      let finalUrl = "";
       while (status !== "completed" && status !== "failed" && guard < 90) {
         await new Promise((resolve) => window.setTimeout(resolve, 5000));
-        const next = await checkVideo({ data: { id: job.id } });
+        const next = await checkVideo({ data: { id: job.id, ...(projectId ? { shotId: clipId } : {}) } });
         status = next.status;
+        if (next.videoUrl) finalUrl = next.videoUrl;
         setRenders((current) => ({ ...current, [clipId]: { ...current[clipId], status: "video", progress: next.progress } }));
         if (status === "failed") throw new Error(next.error || "The video provider could not finish this shot.");
         guard += 1;
       }
       if (status !== "completed") throw new Error("The shot is taking longer than expected. Try again in a moment.");
-      setRenders((current) => ({ ...current, [clipId]: { ...current[clipId], status: "done", videoUrl: `/api/video/${job.id}` } }));
-      notify("Clip rendered.");
+      setRenders((current) => ({ ...current, [clipId]: { ...current[clipId], status: "done", videoUrl: finalUrl || `/api/video/${job.id}` } }));
+      notify("Clip rendered and saved.");
     } catch (error) {
       setRenders((current) => ({ ...current, [clipId]: { ...current[clipId], status: "idle", error: error instanceof Error ? error.message : "Video render failed." } }));
     }
@@ -547,6 +580,8 @@ function AuroraWorkspace() {
               rulesEditing={rulesEditing} setRulesEditing={setRulesEditing} clips={clips} selectedClip={selectedClip}
               setSelectedClip={setSelectedClip} workflowOpen={workflowOpen} setWorkflowOpen={setWorkflowOpen}
               selectWorkflow={selectWorkflow} notify={notify} startExport={startExport}
+              title={title} setTitle={setTitle} brief={brief} setBrief={setBrief} world={world}
+              imageModel={imageModel} setImageModel={setImageModel} videoModel={videoModel} setVideoModel={setVideoModel}
             />
           ) : (
             <EditorWorkspace
@@ -675,6 +710,7 @@ function AgentWorkspace({
   prompt, setPrompt, setMode, agentTab, setAgentTab, activeProjectTab, setActiveProjectTab, agentRunning,
   agentStage, messages, runAgent, rules, setRules, rulesEditing, setRulesEditing, clips, selectedClip,
   setSelectedClip, workflowOpen, setWorkflowOpen, selectWorkflow, notify, startExport,
+  title, setTitle, brief, setBrief, world, imageModel, setImageModel, videoModel, setVideoModel,
 }: {
   prompt: string; setPrompt: (value: string) => void; setMode: (mode: WorkspaceMode) => void;
   agentTab: AgentTab; setAgentTab: (tab: AgentTab) => void; activeProjectTab: string;
@@ -684,6 +720,10 @@ function AgentWorkspace({
   clips: Clip[]; selectedClip: string; setSelectedClip: (id: string) => void; workflowOpen: boolean;
   setWorkflowOpen: (value: boolean) => void; selectWorkflow: (label: string) => void;
   notify: (message: string) => void; startExport: () => void;
+  title: string; setTitle: (value: string) => void; brief: string; setBrief: (value: string) => void;
+  world: { title: string; detail: string; tag: string }[];
+  imageModel: string; setImageModel: (value: string) => void;
+  videoModel: string; setVideoModel: (value: string) => void;
 }) {
   const [composer, setComposer] = useState("");
   const [composerFiles, setComposerFiles] = useState<string[]>([]);
@@ -766,8 +806,8 @@ function AgentWorkspace({
             <button onClick={() => notify("New notebook page created.")} data-testid="button-new-notebook-page" className="ml-auto grid h-8 w-8 place-items-center rounded text-muted-foreground hover:bg-secondary hover:text-foreground"><Plus size={15} /></button>
           </div>
 
-          {agentTab === "context" && <ContextView rules={rules} setRules={setRules} rulesEditing={rulesEditing} setRulesEditing={setRulesEditing} notify={notify} />}
-          {agentTab === "notebook" && <NotebookView agentRunning={agentRunning} agentStage={agentStage} notify={notify} />}
+          {agentTab === "context" && <ContextView title={title} setTitle={setTitle} brief={brief} setBrief={setBrief} world={world} rules={rules} setRules={setRules} rulesEditing={rulesEditing} setRulesEditing={setRulesEditing} notify={notify} />}
+          {agentTab === "notebook" && <NotebookView title={title} brief={brief} clips={clips} agentRunning={agentRunning} notify={notify} />}
           {agentTab === "scenes" && <ScenesView clips={clips} selectedClip={selectedClip} setSelectedClip={setSelectedClip} setMode={setMode} notify={notify} />}
           {agentTab === "final" && <FinalView clips={clips} startExport={startExport} setMode={setMode} notify={notify} />}
 
@@ -795,12 +835,28 @@ function AgentWorkspace({
                 <textarea value={composer} onChange={(event) => setComposer(event.target.value)} onKeyDown={handleComposerKeyDown} placeholder="Tell me what to change, make, or keep…" data-testid="input-agent-composer" className="max-h-24 min-h-9 flex-1 resize-none bg-transparent px-1 py-2 text-xs leading-5 text-foreground outline-none placeholder:text-muted-foreground" />
                 <button onClick={submitComposer} disabled={agentRunning || !composer.trim()} data-testid="button-send-agent-message" className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-primary text-primary-foreground transition-transform hover:scale-105 disabled:cursor-not-allowed disabled:opacity-40"><Send size={15} /></button>
               </div>
-              <div className="mt-2 flex items-center justify-between gap-2">
+              <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
                 <div className="relative">
                   <button onClick={() => setWorkflowOpen(!workflowOpen)} data-testid="button-agent-workflows" className="flex items-center gap-2 rounded border border-border px-2.5 py-1.5 text-[10px] text-muted-foreground hover:text-foreground"><WandSparkles size={12} className="text-primary" /> Workflows <ChevronDown size={11} /></button>
                   {workflowOpen && <div className="absolute bottom-9 left-0 z-30 w-64 rounded-lg border border-border bg-popover p-2 shadow-2xl">{workflowOptions.map((workflow) => <button key={workflow.label} onClick={() => selectWorkflow(workflow.label)} data-testid={`button-workflow-${workflow.label.toLowerCase().replace(/\W+/g, "-")}`} className="w-full rounded px-2.5 py-2 text-left hover:bg-secondary"><span className="block text-xs font-semibold">{workflow.label}</span><span className="mt-1 block text-[10px] text-muted-foreground">{workflow.detail}</span></button>)}</div>}
                 </div>
-                <div className="flex items-center gap-2"><span className="hidden text-[10px] text-muted-foreground sm:inline">Baby Pro</span><button onClick={() => notify("Agent settings opened.")} data-testid="button-agent-settings" className="text-muted-foreground hover:text-foreground"><Settings2 size={13} /></button></div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <label className="flex items-center gap-1.5 rounded border border-border px-2 py-1.5 text-[10px] text-muted-foreground">
+                    <Aperture size={12} className="text-accent" />
+                    <span className="sr-only">Image model</span>
+                    <select value={imageModel} onChange={(event) => setImageModel(event.target.value)} data-testid="select-image-model" className="max-w-[150px] bg-transparent text-[10px] text-foreground outline-none">
+                      {IMAGE_MODELS.map((model) => <option key={model.id} value={model.id} className="bg-popover">{model.label}</option>)}
+                    </select>
+                  </label>
+                  <label className="flex items-center gap-1.5 rounded border border-border px-2 py-1.5 text-[10px] text-muted-foreground">
+                    <Film size={12} className="text-primary" />
+                    <span className="sr-only">Video model</span>
+                    <select value={videoModel} onChange={(event) => setVideoModel(event.target.value)} data-testid="select-video-model" className="max-w-[150px] bg-transparent text-[10px] text-foreground outline-none">
+                      {VIDEO_MODELS.map((model) => <option key={model.id} value={model.id} className="bg-popover">{model.label}</option>)}
+                    </select>
+                  </label>
+                  <button onClick={() => notify("Agent settings opened.")} data-testid="button-agent-settings" className="text-muted-foreground hover:text-foreground"><Settings2 size={13} /></button>
+                </div>
               </div>
               <input ref={composerFileRef} type="file" multiple accept="image/*,video/*,audio/*,.pdf,.txt" onChange={addReferenceFiles} className="hidden" data-testid="input-agent-reference" />
             </div>
@@ -829,7 +885,7 @@ function AgentWorkspace({
   );
 }
 
-function ContextView({ rules, setRules, rulesEditing, setRulesEditing, notify }: { rules: string; setRules: (value: string) => void; rulesEditing: boolean; setRulesEditing: (value: boolean) => void; notify: (message: string) => void }) {
+function ContextView({ title, setTitle, brief, setBrief, world, rules, setRules, rulesEditing, setRulesEditing, notify }: { title: string; setTitle: (value: string) => void; brief: string; setBrief: (value: string) => void; world: { title: string; detail: string; tag: string }[]; rules: string; setRules: (value: string) => void; rulesEditing: boolean; setRulesEditing: (value: boolean) => void; notify: (message: string) => void }) {
   return (
     <div className="space-y-7">
       <section className="reveal">
@@ -838,49 +894,45 @@ function ContextView({ rules, setRules, rulesEditing, setRulesEditing, notify }:
         <div className="mt-3 flex items-start gap-3 border-t border-border pt-4"><MessageSquareText size={16} className="mt-0.5 shrink-0 text-muted-foreground" /><p className="max-w-2xl text-xs leading-5 text-muted-foreground">This helps the agent understand the big picture. Give it the audience, the intent, and the rules that should remain true across every generation.</p></div>
       </section>
       <section className="reveal reveal-delay-1">
-        <label htmlFor="context-description" className="mono text-[9px] uppercase tracking-[.18em] text-muted-foreground">Description</label>
-        <input id="context-description" defaultValue="NBA Josh — Untitled film" data-testid="input-context-description" className="mt-2 w-full border-b border-border bg-transparent pb-2 text-sm font-bold text-foreground outline-none focus:border-primary" />
-        <p className="mt-4 max-w-3xl text-xs leading-6 text-muted-foreground">25-second 16:9 cinematic lip-sync for NBA Josh, Out The Mud Records. Track: Untitled film (24.35s) at <span className="rounded bg-secondary px-1.5 py-0.5 text-[10px] text-foreground">SEQ 1.1</span>.</p>
-        <p className="mt-3 max-w-3xl text-xs leading-6 text-muted-foreground">The one idea: Josh performs the hook, calm, on a wet night street, while police officers loop endlessly behind him and never catch up. He glances back once, smirks, walks off.</p>
-        <p className="mt-3 text-xs leading-6 text-muted-foreground">Sunglasses off. Josh bottom-right, officers upper-left, empty center.</p>
-        <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">Brief: <span className="rounded bg-secondary px-1.5 py-0.5 text-[10px] text-foreground">NBA Josh — Untitled film</span> Artist lore: <span className="rounded bg-secondary px-1.5 py-0.5 text-[10px] text-foreground">SEQ 2.1</span></div>
+        <label htmlFor="context-description" className="mono text-[9px] uppercase tracking-[.18em] text-muted-foreground">Project name</label>
+        <input id="context-description" value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Name this project" data-testid="input-context-description" className="mt-2 w-full border-b border-border bg-transparent pb-2 text-sm font-bold text-foreground outline-none focus:border-primary" />
       </section>
       <section className="rounded-xl border border-border bg-card/75 p-4 sm:p-5">
-        <div className="flex items-center justify-between"><h3 className="text-sm font-bold">Briefs</h3><button onClick={() => notify("Brief context is already pinned to this project.")} data-testid="button-pin-brief" className="text-muted-foreground hover:text-foreground"><LockKeyhole size={14} /></button></div>
-        <p className="mono mt-4 text-[9px] uppercase tracking-[.16em] text-muted-foreground">Brief</p>
-        <p className="mt-2 text-sm font-semibold">NBA Josh — Untitled film</p>
-        <p className="mt-1 text-xs leading-5 text-muted-foreground">25s 16:9 cinematic lip-sync. Josh performs the hook on a wet night street while the world loops behind him.</p>
+        <div className="flex items-center justify-between"><h3 className="text-sm font-bold">Brief</h3><button onClick={() => notify("Your brief stays pinned to this project.")} data-testid="button-pin-brief" className="text-muted-foreground hover:text-foreground"><LockKeyhole size={14} /></button></div>
+        <textarea value={brief} onChange={(event) => setBrief(event.target.value)} placeholder="Nothing yet — tell the agent what you want to make and the brief will appear here." data-testid="input-context-brief" className="mt-3 min-h-20 w-full resize-y rounded-md border border-border bg-card p-3 text-xs leading-5 outline-none focus:border-primary" />
       </section>
       <section>
-        <div className="flex items-center justify-between border-b border-border pb-3"><h2 className="text-2xl font-semibold tracking-[-.03em]">invideo rules</h2><button onClick={() => setRulesEditing(!rulesEditing)} data-testid="button-edit-rules" className="text-[10px] uppercase tracking-[.14em] text-muted-foreground hover:text-foreground">{rulesEditing ? "Done" : "Edit"}</button></div>
+        <div className="flex items-center justify-between border-b border-border pb-3"><h2 className="text-2xl font-semibold tracking-[-.03em]">Baby rules</h2><button onClick={() => setRulesEditing(!rulesEditing)} data-testid="button-edit-rules" className="text-[10px] uppercase tracking-[.14em] text-muted-foreground hover:text-foreground">{rulesEditing ? "Done" : "Edit"}</button></div>
         {rulesEditing ? <textarea value={rules} onChange={(event) => setRules(event.target.value)} placeholder="Set a default tone, pacing, audience, format, or any rules you want followed." data-testid="input-invideo-rules" className="mt-3 min-h-24 w-full resize-y rounded-md border border-border bg-card p-3 text-xs leading-5 outline-none focus:border-primary" /> : <p className="mt-4 text-xs leading-5 text-muted-foreground">{rules || "Nothing here yet."}</p>}
-        {!rulesEditing && <p className="mt-4 flex items-start gap-3 text-xs italic leading-5 text-muted-foreground"><SlidersHorizontal size={14} className="mt-0.5 shrink-0 not-italic" />The more the agent knows, the better it creates. Set your default tone, pacing, audience, format, or any rules you want followed. You can always override per prompt.</p>}
+        {!rulesEditing && <p className="mt-4 flex items-start gap-3 text-xs italic leading-5 text-muted-foreground"><SlidersHorizontal size={14} className="mt-0.5 shrink-0 not-italic" />The more the agent knows, the better it creates. You can always override per prompt.</p>}
       </section>
       <section>
-        <div className="flex items-center justify-between border-b border-border pb-3"><h2 className="text-2xl font-semibold tracking-[-.03em]">World</h2><button onClick={() => notify("Add a character, location, wardrobe, or visual rule to the world.")} data-testid="button-add-world-item" className="flex items-center gap-1.5 text-[10px] uppercase tracking-[.14em] text-muted-foreground hover:text-foreground"><Plus size={13} /> Add</button></div>
-        <div className="mt-4 space-y-3">{contextSections.map((section) => <button key={section.title} onClick={() => notify(`${section.title} context opened.`)} data-testid={`button-world-${section.title.toLowerCase().replace(/\s+/g, "-")}`} className="w-full rounded-xl border border-border bg-card/75 p-4 text-left transition-colors hover:border-accent/40"><div className="flex items-center justify-between"><h3 className="text-sm font-bold">{section.title}</h3><span className="mono text-[8px] uppercase tracking-[.16em] text-muted-foreground">{section.tag}</span></div><div className="mt-2 h-px bg-border" /><p className="mt-3 text-xs leading-5 text-muted-foreground">{section.detail}</p><div className="mt-3 flex items-center gap-2 text-[10px] text-accent"><span className="h-1.5 w-1.5 rounded-full bg-accent" /> continuity locked <ChevronRight size={12} className="ml-auto" /></div></button>)}</div>
+        <div className="flex items-center justify-between border-b border-border pb-3"><h2 className="text-2xl font-semibold tracking-[-.03em]">World</h2><button onClick={() => notify("Describe a character, location, wardrobe or visual rule in the chat and the agent will keep it.")} data-testid="button-add-world-item" className="flex items-center gap-1.5 text-[10px] uppercase tracking-[.14em] text-muted-foreground hover:text-foreground"><Plus size={13} /> Add</button></div>
+        <div className="mt-4 space-y-3">
+          {world.length === 0 && <p className="text-xs leading-5 text-muted-foreground">Nothing here yet. Characters, locations and visual rules you agree with the agent will be kept here.</p>}
+          {world.map((section) => <button key={section.title} onClick={() => notify(`${section.title} context opened.`)} data-testid={`button-world-${section.title.toLowerCase().replace(/\s+/g, "-")}`} className="w-full rounded-xl border border-border bg-card/75 p-4 text-left transition-colors hover:border-accent/40"><div className="flex items-center justify-between"><h3 className="text-sm font-bold">{section.title}</h3><span className="mono text-[8px] uppercase tracking-[.16em] text-muted-foreground">{section.tag}</span></div><div className="mt-2 h-px bg-border" /><p className="mt-3 text-xs leading-5 text-muted-foreground">{section.detail}</p><div className="mt-3 flex items-center gap-2 text-[10px] text-accent"><span className="h-1.5 w-1.5 rounded-full bg-accent" /> continuity locked <ChevronRight size={12} className="ml-auto" /></div></button>)}
+        </div>
       </section>
     </div>
   );
 }
 
-function NotebookView({ agentRunning, agentStage, notify }: { agentRunning: boolean; agentStage: number; notify: (message: string) => void }) {
+function NotebookView({ title, brief, clips, agentRunning, notify }: { title: string; brief: string; clips: Clip[]; agentRunning: boolean; notify: (message: string) => void }) {
   const notebookItems = [
-    { title: "Treatment", body: "One artist. One continuous mix. The world keeps moving while Josh stays calm.", state: "approved" },
-    { title: "Shot 01 — The signal", body: "Wide wet street. Police lights loop behind Josh. Hold the empty center.", state: agentStage >= 1 ? "approved" : "ready" },
-    { title: "Shot 02 — The hook", body: "Move into a low-angle portrait. Match the red-tipped dreads and jewelry from World.", state: agentStage >= 2 ? "approved" : "ready" },
-    { title: "Shot 03 — The glance", body: "A single glance back to camera. Keep the voiceover and performance timing intact.", state: agentStage >= 3 ? "approved" : "needs review" },
+    ...(brief.trim() ? [{ title: "Treatment", body: brief.trim(), state: "approved" }] : []),
+    ...clips.map((clip) => ({ title: clip.label, body: clip.sub, state: "ready" })),
   ];
   return (
     <div className="space-y-5">
       <div className="rounded-xl border border-border bg-card/70 p-5">
-        <div className="flex items-center justify-between"><div><p className="mono text-[9px] uppercase tracking-[.18em] text-primary">Notebook / Page 1</p><h2 className="mt-2 text-2xl font-semibold tracking-[-.03em]">Untitled film</h2></div><button onClick={() => notify("Notebook page downloaded.")} data-testid="button-download-notebook" className="grid h-8 w-8 place-items-center rounded border border-border text-muted-foreground hover:bg-secondary hover:text-foreground"><Download size={14} /></button></div>
+        <div className="flex items-center justify-between"><div><p className="mono text-[9px] uppercase tracking-[.18em] text-primary">Notebook / Page 1</p><h2 className="mt-2 text-2xl font-semibold tracking-[-.03em]">{title || "Untitled project"}</h2></div><button onClick={() => notify("Notebook page downloaded.")} data-testid="button-download-notebook" className="grid h-8 w-8 place-items-center rounded border border-border text-muted-foreground hover:bg-secondary hover:text-foreground"><Download size={14} /></button></div>
         <p className="mt-4 max-w-xl text-xs leading-5 text-muted-foreground">A working production document the agent can read, revise, and hand back to the editable Slate without losing context.</p>
       </div>
       <div className="space-y-3">
+        {notebookItems.length === 0 && <p className="rounded-lg border border-dashed border-border p-5 text-xs leading-5 text-muted-foreground">Nothing written yet. Send the agent a brief and your treatment and shots will appear here.</p>}
         {notebookItems.map((item) => (
           <button key={item.title} onClick={() => notify(`${item.title} selected in Notebook.`)} data-testid={`button-notebook-${item.title.toLowerCase().replace(/\W+/g, "-")}`} className="w-full rounded-lg border border-border bg-card/55 p-4 text-left hover:border-primary/40">
-            <div className="flex items-center justify-between gap-3"><h3 className="text-sm font-bold">{item.title}</h3><span className={`rounded-full px-2 py-1 text-[9px] uppercase tracking-[.12em] ${item.state === "approved" ? "bg-accent/12 text-accent" : item.state === "needs review" ? "bg-primary/12 text-primary" : "bg-secondary text-muted-foreground"}`}>{item.state}</span></div>
+            <div className="flex items-center justify-between gap-3"><h3 className="text-sm font-bold">{item.title}</h3><span className={`rounded-full px-2 py-1 text-[9px] uppercase tracking-[.12em] ${item.state === "approved" ? "bg-accent/12 text-accent" : "bg-secondary text-muted-foreground"}`}>{item.state}</span></div>
             <p className="mt-2 text-xs leading-5 text-muted-foreground">{item.body}</p>
           </button>
         ))}
